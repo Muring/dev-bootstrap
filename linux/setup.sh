@@ -53,6 +53,21 @@ warn() { printf '    \033[1;33m!\033[0m %s\n' "$1"; }
 # errexit 가 억제되므로, apt 가 실패해도 실행이 계속되고 마지막 printf 가
 # 성공으로 만들어 버린다. 그래서 종료코드를 직접 보고 직접 구분해 돌려준다.
 #   0 = 설치함(설치한 목록을 stdout 으로)  1 = 이미 다 있음  2 = 설치 실패
+# `| head -1` 로 자르면서 종료코드를 버리면, 실패한 명령이 뭔가 뱉기만 해도
+# 성공으로 읽힌다. 전체 출력을 먼저 받아 종료코드까지 확인한 뒤 첫 줄만 쓴다.
+# (`if out=$(...)` 형태라 여기서도 errexit 가 억제되지만, 종료코드를 직접 본다.)
+probe() {
+  local out i
+  for i in 1 2 3; do
+    if out=$("$@" 2>/dev/null) && [ -n "$out" ]; then
+      printf '%s' "${out%%$'\n'*}"   # 첫 줄만
+      return 0
+    fi
+    if [ "$i" -lt 3 ]; then sleep 2; fi
+  done
+  return 1   # 빈 값이 check 로 넘어가 실패로 잡힌다
+}
+
 apt_install() {
   local missing=() p
   for p in "$@"; do dpkg -s "$p" >/dev/null 2>&1 || missing+=("$p"); done
@@ -66,20 +81,25 @@ apt_install() {
 }
 
 # apt_install 을 부르고 세 갈래를 구분해 처리한다.
-apt_step() { # apt_step <단계이름> <패키지...>
-  local label="$1"; shift
-  local out="" rc=0
+# <버전명령> 을 주면 이미 설치돼 있을 때 그 버전을 함께 보여준다(없으면 `-`).
+apt_step() { # apt_step <단계이름> <버전명령|-> <패키지...>
+  local label="$1" vercmd="$2"; shift 2
+  local out="" rc=0 ver=""
   out=$(apt_install "$@") || rc=$?
   case "$rc" in
     0) done_ "설치: $out" ;;
-    1) skip "이미 모두 설치됨" ;;
+    1) if [ "$vercmd" != "-" ] && ver=$(probe "$vercmd" --version); then
+         skip "이미 설치됨 ($ver)"
+       else
+         skip "이미 모두 설치됨"
+       fi ;;
     *) die "$label 설치 실패 — 위 apt 출력을 본다 (패키지: $*)" ;;
   esac
 }
 
 # ---------------------------------------------------------------- apt
 step "apt 기반 패키지"
-apt_step "apt 기반 패키지" "${APT_PACKAGES[@]}"
+apt_step "apt 기반 패키지" - "${APT_PACKAGES[@]}"
 
 # ---------------------------------------------------------------- gh
 # Ubuntu 공식 저장소의 gh 는 한참 낡았다(26.04 기준 2.46 vs 2.100).
@@ -101,7 +121,7 @@ else
 fi
 
 step "gh"
-apt_step "gh" gh
+apt_step "gh" gh gh
 
 # ---------------------------------------------------------------- 타임존
 step "타임존"
@@ -253,21 +273,6 @@ step "검증"
 FAILED=()
 # claude·codex 는 스스로 업데이트한다. 교체되는 찰나에 부르면 빈 값이 나와
 # 멀쩡한 환경이 실패로 잡힌다. 몇 번 다시 물어본다.
-# `| head -1` 로 자르면서 종료코드를 버리면, 실패한 명령이 뭔가 뱉기만 해도
-# 성공으로 읽힌다. 전체 출력을 먼저 받아 종료코드까지 확인한 뒤 첫 줄만 쓴다.
-# (`if out=$(...)` 형태라 여기서도 errexit 가 억제되지만, 종료코드를 직접 본다.)
-probe() {
-  local out i
-  for i in 1 2 3; do
-    if out=$("$@" 2>/dev/null) && [ -n "$out" ]; then
-      printf '%s' "${out%%$'\n'*}"   # 첫 줄만
-      return 0
-    fi
-    if [ "$i" -lt 3 ]; then sleep 2; fi
-  done
-  return 1   # 빈 값이 check 로 넘어가 실패로 잡힌다
-}
-
 check() { # check <설명> <기대> <실제>
   if [ -n "$3" ] && { [ -z "$2" ] || [ "$2" = "$3" ]; }; then
     done_ "$1: $3"
