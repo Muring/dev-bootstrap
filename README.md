@@ -32,12 +32,17 @@ GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev-bootstrap/linux/setup.
 
 두 스크립트 모두 **멱등하다.** 몇 번을 돌려도 같은 상태가 된다.
 
+`setup.sh` 는 끝에서 **실제로 돌려보고** 하나라도 어긋나면 `exit 1` 로 끝난다.
+안내문만 찍고 성공한 척하지 않는다.
+
 ## 구성하는 것
 
 | | |
 |---|---|
 | Windows | WSL2, Ubuntu (cloud-init 무인 사용자 생성) |
-| Ubuntu | build-essential, curl, git, gh, unzip, zsh |
+| Ubuntu | build-essential, ca-certificates, curl, git, unzip, zsh |
+| gh | **cli.github.com 저장소를 먼저 붙인다.** Ubuntu 공식 저장소의 gh 는 낡았다(2.46 vs 2.100) |
+| 타임존 | `Asia/Seoul` (`TIMEZONE` 으로 바꾼다) |
 | Node | fnm → Node 22.23.2 → corepack (yarn 은 프로젝트 `packageManager` 를 따른다) |
 | 전역 npm | `@anthropic-ai/claude-code`, `@openai/codex` |
 | 셸 | zsh + autosuggestions + syntax-highlighting, `.zshrc` |
@@ -72,5 +77,9 @@ PC 마다 결과가 갈린다. `linux/files/` 안의 dotfile 이 실제 배포�
 - **`.ps1` 은 UTF-8 BOM 을 유지한다.** BOM 이 없으면 Windows PowerShell 5.1 이 cp949 로
   읽어 한글 주석이 깨지고 "종료되지 않은 문자열" 로 파싱이 실패한다. 실행 전에 확인:
   `[System.Management.Automation.Language.Parser]::ParseFile(...)`
+- **패키지 목록을 `apt-mark showmanual` 로 뽑지 않는다.** 그건 "이 PC 에서 손으로 깐 것"이지
+  "필요한 것"이 아니다. 기반 이미지가 다르면 조용히 구멍이 난다.
+  반대로 **외부 저장소에서 온 패키지는 저장소부터 붙여야 한다** — 안 그러면 낡은 버전이
+  에러 없이 깔리고 스킵 로직도 "설치됨"으로 통과시킨다(`gh` 가 그랬다).
 - **`.sh` 는 LF 로 고정한다.** CRLF 면 WSL 에서 `bad interpreter` 가 난다.
   `.gitattributes` 가 둘 다 강제한다.

@@ -3,11 +3,13 @@
 set -euo pipefail
 
 NODE_VERSION="${NODE_VERSION:-22.23.2}"
+TIMEZONE="${TIMEZONE:-Asia/Seoul}"
 FNM_DIR="$HOME/.local/share/fnm"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FILES_DIR="$REPO_DIR/files"
 
-APT_PACKAGES=(build-essential curl git gh unzip zsh)
+# 기반 이미지에 이미 있을 수 있지만, 없는 환경도 있으므로 명시한다.
+APT_PACKAGES=(build-essential ca-certificates curl git unzip zsh)
 NPM_GLOBALS=(@anthropic-ai/claude-code @openai/codex)
 
 step() { printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
@@ -15,18 +17,47 @@ skip() { printf '    \033[2m· %s\033[0m\n' "$1"; }
 done_() { printf '    \033[1;32m✓\033[0m %s\n' "$1"; }
 warn() { printf '    \033[1;33m!\033[0m %s\n' "$1"; }
 
-# ---------------------------------------------------------------- apt
-step "apt 패키지"
-missing=()
-for p in "${APT_PACKAGES[@]}"; do
-  dpkg -s "$p" >/dev/null 2>&1 || missing+=("$p")
-done
-if [ ${#missing[@]} -eq 0 ]; then
-  skip "이미 모두 설치됨"
-else
+apt_install() {
+  local missing=()
+  for p in "$@"; do dpkg -s "$p" >/dev/null 2>&1 || missing+=("$p"); done
+  if [ ${#missing[@]} -eq 0 ]; then return 1; fi
   sudo apt-get update -qq
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${missing[@]}"
-  done_ "설치: ${missing[*]}"
+  printf '%s' "${missing[*]}"
+}
+
+# ---------------------------------------------------------------- apt
+step "apt 기반 패키지"
+if out=$(apt_install "${APT_PACKAGES[@]}"); then done_ "설치: $out"; else skip "이미 모두 설치됨"; fi
+
+# ---------------------------------------------------------------- gh
+# Ubuntu 공식 저장소의 gh 는 한참 낡았다(26.04 기준 2.46 vs 2.100).
+# 저장소를 먼저 붙이지 않으면 낡은 버전이 조용히 깔린다.
+step "GitHub CLI 저장소"
+GH_LIST=/etc/apt/sources.list.d/github-cli.list
+GH_KEY=/etc/apt/keyrings/githubcli-archive-keyring.gpg
+GH_LINE="deb [arch=$(dpkg --print-architecture) signed-by=$GH_KEY] https://cli.github.com/packages stable main"
+if [ -s "$GH_KEY" ] && [ -f "$GH_LIST" ] && [ "$(cat "$GH_LIST")" = "$GH_LINE" ]; then
+  skip "이미 등록됨"
+else
+  sudo mkdir -p -m 755 /etc/apt/keyrings
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | sudo tee "$GH_KEY" >/dev/null
+  sudo chmod go+r "$GH_KEY"
+  printf '%s\n' "$GH_LINE" | sudo tee "$GH_LIST" >/dev/null
+  sudo apt-get update -qq
+  done_ "cli.github.com 등록"
+fi
+
+step "gh"
+if out=$(apt_install gh); then done_ "설치: $out"; else skip "이미 설치됨 ($(gh --version 2>/dev/null | head -1))"; fi
+
+# ---------------------------------------------------------------- 타임존
+step "타임존"
+if [ "$(timedatectl show -p Timezone --value 2>/dev/null)" = "$TIMEZONE" ]; then
+  skip "이미 $TIMEZONE"
+else
+  sudo timedatectl set-timezone "$TIMEZONE" 2>/dev/null && done_ "$TIMEZONE" || warn "설정 실패 (systemd 미가동?)"
 fi
 
 # ---------------------------------------------------------------- wsl.conf
@@ -165,7 +196,41 @@ else
   done_ "~/.claude/skills/dev-setup → 저장소 (git pull 하면 같이 갱신된다)"
 fi
 
-# ---------------------------------------------------------------- 남은 수동 작업
+# ---------------------------------------------------------------- 검증
+# 출력만 하지 않는다. 실제로 돌려보고, 하나라도 어긋나면 0 이 아닌 코드로 끝낸다.
+step "검증"
+FAILED=()
+check() { # check <설명> <기대> <실제>
+  if [ -n "$3" ] && { [ -z "$2" ] || [ "$2" = "$3" ]; }; then
+    done_ "$1: $3"
+  else
+    warn "$1: 기대 '${2:-비어있지 않음}' / 실제 '${3:-없음}'"
+    FAILED+=("$1")
+  fi
+}
+
+check "node"    "v$NODE_VERSION" "$(node -v 2>/dev/null)"
+check "yarn"    ""               "$(corepack yarn --version 2>/dev/null || true)"
+check "claude"  ""               "$(claude --version 2>/dev/null | head -1)"
+check "codex"   ""               "$(codex --version 2>/dev/null | head -1)"
+check "gh"      ""               "$(gh --version 2>/dev/null | head -1)"
+check "git"     ""               "$(git --version 2>/dev/null)"
+check "로그인 셸" "/usr/bin/zsh"   "$(getent passwd "$USER" | cut -d: -f7)"
+check "타임존"   "$TIMEZONE"      "$(timedatectl show -p Timezone --value 2>/dev/null)"
+
+for s_ in "${ORCA_SKILLS[@]:-}"; do
+  [ -n "$s_" ] || continue
+  if [ -d "$HOME/.agents/skills/$s_" ] || [ -d "$HOME/.claude/skills/$s_" ]; then
+    done_ "스킬 $s_"
+  else
+    warn "스킬 $s_ 없음"; FAILED+=("스킬 $s_")
+  fi
+done
+[ -e "$HOME/.claude/skills/dev-setup" ] \
+  && done_ "스킬 dev-setup" \
+  || { warn "스킬 dev-setup 없음"; FAILED+=("스킬 dev-setup"); }
+
+# ---------------------------------------------------------------- 결과
 cat <<'MANUAL'
 
 ──────────────────────────────────────────────
@@ -175,7 +240,11 @@ cat <<'MANUAL'
   codex login
   gh auth login
   Orca            → 앱에서 계정 로그인
-
-확인:
-  claude --version && codex --version && node -v && yarn -v
 MANUAL
+
+if [ ${#FAILED[@]} -gt 0 ]; then
+  printf '\n\033[1;31m✗ 미완료 %d 건:\033[0m %s\n' "${#FAILED[@]}" "${FAILED[*]}"
+  printf '  고친 뒤 이 스크립트를 통째로 다시 돌린다. 멱등하다.\n'
+  exit 1
+fi
+printf '\n\033[1;32m✓ 전부 확인됨\033[0m\n'
