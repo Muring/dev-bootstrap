@@ -12,7 +12,29 @@ FILES_DIR="$REPO_DIR/files"
 APT_PACKAGES=(build-essential ca-certificates curl git unzip zsh)
 NPM_GLOBALS=(@anthropic-ai/claude-code @openai/codex)
 
-step() { printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
+# 이 스크립트의 설치 가지는 아직 실제 신규 환경에서 돌아본 적이 없다.
+# 처음 터지는 자리를 바로 알 수 있게, 단계 이름과 줄번호를 남기고 로그를 파일로 뜬다.
+LOG="${SETUP_LOG:-$HOME/dev-bootstrap-setup.log}"
+if : >>"$LOG" 2>/dev/null; then
+  exec > >(tee -a "$LOG") 2>&1
+  printf '\n===== %s =====\n' "$(date '+%F %T')"
+else
+  LOG="(로그 파일을 못 씀)"
+fi
+
+CURRENT_STEP="(시작 전)"
+on_err() {
+  local code=$? line=${1:-?}
+  printf '\n\033[1;31m✗ 실패\033[0m\n'
+  printf '  단계   : %s\n' "$CURRENT_STEP"
+  printf '  위치   : setup.sh:%s (exit %d)\n' "$line" "$code"
+  printf '  로그   : %s\n' "$LOG"
+  printf '\n  이 로그를 그대로 클로드에게 주면 된다.\n'
+  printf '  고친 뒤에는 통째로 다시 돌린다 — 멱등하므로 끝난 단계는 스킵된다.\n'
+}
+trap 'on_err $LINENO' ERR
+
+step() { CURRENT_STEP="$1"; printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
 skip() { printf '    \033[2m· %s\033[0m\n' "$1"; }
 done_() { printf '    \033[1;32m✓\033[0m %s\n' "$1"; }
 warn() { printf '    \033[1;33m!\033[0m %s\n' "$1"; }
@@ -200,6 +222,18 @@ fi
 # 출력만 하지 않는다. 실제로 돌려보고, 하나라도 어긋나면 0 이 아닌 코드로 끝낸다.
 step "검증"
 FAILED=()
+# claude·codex 는 스스로 업데이트한다. 교체되는 찰나에 부르면 빈 값이 나와
+# 멀쩡한 환경이 실패로 잡힌다. 몇 번 다시 물어본다.
+probe() {
+  local out i
+  for i in 1 2 3; do
+    out=$("$@" 2>/dev/null | head -1) || true
+    if [ -n "$out" ]; then printf '%s' "$out"; return 0; fi
+    if [ "$i" -lt 3 ]; then sleep 2; fi
+  done
+  return 0   # 끝내 비면 check 가 실패로 잡는다
+}
+
 check() { # check <설명> <기대> <실제>
   if [ -n "$3" ] && { [ -z "$2" ] || [ "$2" = "$3" ]; }; then
     done_ "$1: $3"
@@ -209,13 +243,13 @@ check() { # check <설명> <기대> <실제>
   fi
 }
 
-check "fnm"     ""               "$(fnm --version 2>/dev/null)"
-check "node"    "v$NODE_VERSION" "$(node -v 2>/dev/null)"
-check "yarn"    ""               "$(corepack yarn --version 2>/dev/null || true)"
-check "claude"  ""               "$(claude --version 2>/dev/null | head -1)"
-check "codex"   ""               "$(codex --version 2>/dev/null | head -1)"
-check "gh"      ""               "$(gh --version 2>/dev/null | head -1)"
-check "git"     ""               "$(git --version 2>/dev/null)"
+check "fnm"     ""               "$(probe fnm --version)"
+check "node"    "v$NODE_VERSION" "$(probe node -v)"
+check "yarn"    ""               "$(probe corepack yarn --version)"
+check "claude"  ""               "$(probe claude --version)"
+check "codex"   ""               "$(probe codex --version)"
+check "gh"      ""               "$(probe gh --version)"
+check "git"     ""               "$(probe git --version)"
 check "로그인 셸" "/usr/bin/zsh"   "$(getent passwd "$USER" | cut -d: -f7)"
 check "타임존"   "$TIMEZONE"      "$(timedatectl show -p Timezone --value 2>/dev/null)"
 
@@ -245,6 +279,7 @@ MANUAL
 
 if [ ${#FAILED[@]} -gt 0 ]; then
   printf '\n\033[1;31m✗ 미완료 %d 건:\033[0m %s\n' "${#FAILED[@]}" "${FAILED[*]}"
+  printf '  로그: %s\n' "$LOG"
   printf '  고친 뒤 이 스크립트를 통째로 다시 돌린다. 멱등하다.\n'
   exit 1
 fi
