@@ -16,6 +16,12 @@ function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
 function Ok($m)   { Write-Host "    OK  $m" -ForegroundColor Green }
 function Warn($m) { Write-Host "    !   $m" -ForegroundColor Yellow }
 
+# Windows 사용자명은 공백·대문자·한글이 들어갈 수 있어 리눅스 사용자명으로 못 쓴다.
+$User = ($User.ToLower() -replace '[^a-z0-9_-]', '')
+if ($User -notmatch '^[a-z_][a-z0-9_-]{0,31}$') {
+  throw "리눅스 사용자명으로 쓸 수 없다: '$User'. -User <이름> 으로 직접 준다."
+}
+
 $admin = ([Security.Principal.WindowsPrincipal] `
   [Security.Principal.WindowsIdentity]::GetCurrent()
 ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -31,15 +37,25 @@ if ($installed -contains $Distro) {
   Step "cloud-init (무인 사용자 생성)"
   $ciDir = Join-Path $env:USERPROFILE '.cloud-init'
   New-Item -ItemType Directory -Force -Path $ciDir | Out-Null
-  @"
+  # cloud-init 은 '#cloud-config' 가 첫 바이트여야 한다.
+  # Set-Content -Encoding UTF8 은 PowerShell 5.1 에서 BOM 을 붙여 이 검사를 깬다.
+  # sudo NOPASSWD: cloud-init 사용자는 비밀번호가 없어 이게 없으면 sudo 자체가 막힌다.
+  $userData = @"
 #cloud-config
 users:
   - name: $User
     groups: [adm, sudo]
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
-"@ | Set-Content -Encoding UTF8 -NoNewline (Join-Path $ciDir "$Distro.user-data")
-  Ok "$Distro.user-data 작성"
+
+"@ -replace "`r`n", "`n"
+  $ciPath = Join-Path $ciDir "$Distro.user-data"
+  [System.IO.File]::WriteAllText($ciPath, $userData,
+    (New-Object System.Text.UTF8Encoding $false))
+
+  $head = [System.IO.File]::ReadAllBytes($ciPath)[0..2] -join ' '
+  if ($head -eq '239 187 191') { throw "user-data 에 BOM 이 붙었다. cloud-init 이 무시한다." }
+  Ok "$Distro.user-data 작성 (BOM 없음 확인)"
 
   Step "$Distro 설치"
   wsl.exe --install --no-launch -d $Distro
@@ -49,6 +65,14 @@ users:
   }
   wsl.exe -d $Distro -- true    # 첫 부팅 → cloud-init 실행
   Ok "$Distro 설치 및 초기화"
+
+  # cloud-init 이 조용히 무시되면 여기서 드러난다. 다음 단계로 넘기지 않는다.
+  wsl.exe -d $Distro -- id -u $User 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    throw "cloud-init 이 사용자 '$User' 를 만들지 못했다. " +
+          "'wsl -d $Distro' 로 직접 들어가 사용자를 만든 뒤 linux/setup.sh 를 돌린다."
+  }
+  Ok "사용자 '$User' 확인"
 }
 
 # ---------------------------------------------------------------- Orca

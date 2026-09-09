@@ -83,3 +83,21 @@ PC 마다 결과가 갈린다. `linux/files/` 안의 dotfile 이 실제 배포�
   에러 없이 깔리고 스킵 로직도 "설치됨"으로 통과시킨다(`gh` 가 그랬다).
 - **`.sh` 는 LF 로 고정한다.** CRLF 면 WSL 에서 `bad interpreter` 가 난다.
   `.gitattributes` 가 둘 다 강제한다.
+
+## 알려진 한계
+
+정직하게 적는다. 이걸 모르고 쓰면 새 PC 에서 당황한다.
+
+- **설치 경로는 아직 실제로 실행된 적이 없다.** 개발 PC 에서는 전부 "이미 있음" 으로
+  스킵되므로 `else` 가지가 한 번도 안 돈다. 검증하려면 일회용 배포판을 만든다:
+  `wsl --install Ubuntu --name bootstrap-test` → 돌려보고 → `wsl --unregister bootstrap-test`.
+- **고정된 버전은 Node 하나뿐이다.** fnm·zsh 플러그인·`claude`·`codex` 는 최신을 따라간다.
+  끝의 검증이 버전을 찍어주므로 드리프트는 보이지만, 막지는 않는다.
+- **공급망 검증이 없다.** fnm 은 `curl | bash` 로 받고 체크섬을 대조하지 않는다.
+  zsh 플러그인도 `master` 를 그대로 클론한다.
+- **cloud-init 사용자는 비밀번호 없는 sudo 를 갖는다.** 비밀번호가 아예 없어서
+  `NOPASSWD` 가 없으면 `setup.sh` 의 sudo 가 전부 막힌다. 개발용 WSL 이라 감수한 것이다.
+  원치 않으면 `wsl -d <distro>` 로 들어가 직접 사용자를 만들고 `setup.sh` 만 돌린다.
+- **`setup.sh` 는 `~/.zshrc` 를 저장소 버전으로 덮어쓴다** (`.bak.<날짜>` 백업은 남는다).
+  이 PC 전용 설정은 `~/.zshrc.local` 로 빼고 `.zshrc` 에서 source 한다.
+- **Orca 설치는 자동이 아니다.** winget 패키지가 아니라 배포용 인스톨러다.

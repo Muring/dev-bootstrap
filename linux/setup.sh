@@ -209,6 +209,7 @@ check() { # check <설명> <기대> <실제>
   fi
 }
 
+check "fnm"     ""               "$(fnm --version 2>/dev/null)"
 check "node"    "v$NODE_VERSION" "$(node -v 2>/dev/null)"
 check "yarn"    ""               "$(corepack yarn --version 2>/dev/null || true)"
 check "claude"  ""               "$(claude --version 2>/dev/null | head -1)"
