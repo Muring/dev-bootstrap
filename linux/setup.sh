@@ -23,6 +23,16 @@ else
 fi
 
 CURRENT_STEP="(시작 전)"
+die() {
+  printf '\n\033[1;31m✗ 실패\033[0m\n'
+  printf '  단계   : %s\n' "$CURRENT_STEP"
+  printf '  이유   : %s\n' "$1"
+  printf '  로그   : %s\n' "$LOG"
+  printf '\n  이 로그를 그대로 클로드에게 주면 된다.\n'
+  printf '  고친 뒤에는 통째로 다시 돌린다 — 멱등하므로 끝난 단계는 스킵된다.\n'
+  exit 1
+}
+
 on_err() {
   local code=$? line=${1:-?}
   printf '\n\033[1;31m✗ 실패\033[0m\n'
@@ -39,18 +49,37 @@ skip() { printf '    \033[2m· %s\033[0m\n' "$1"; }
 done_() { printf '    \033[1;32m✓\033[0m %s\n' "$1"; }
 warn() { printf '    \033[1;33m!\033[0m %s\n' "$1"; }
 
+# 이 함수는 `if out=$(apt_install ...)` 로 불린다. 조건 문맥에서는 함수 안의
+# errexit 가 억제되므로, apt 가 실패해도 실행이 계속되고 마지막 printf 가
+# 성공으로 만들어 버린다. 그래서 종료코드를 직접 보고 직접 구분해 돌려준다.
+#   0 = 설치함(설치한 목록을 stdout 으로)  1 = 이미 다 있음  2 = 설치 실패
 apt_install() {
-  local missing=()
+  local missing=() p
   for p in "$@"; do dpkg -s "$p" >/dev/null 2>&1 || missing+=("$p"); done
   if [ ${#missing[@]} -eq 0 ]; then return 1; fi
-  sudo apt-get update -qq
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${missing[@]}"
+  sudo apt-get update -qq || return 2
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${missing[@]}" || return 2
+  # 설치했다고 주장하기 전에 실제로 들어갔는지 확인한다.
+  for p in "${missing[@]}"; do dpkg -s "$p" >/dev/null 2>&1 || return 2; done
   printf '%s' "${missing[*]}"
+  return 0
+}
+
+# apt_install 을 부르고 세 갈래를 구분해 처리한다.
+apt_step() { # apt_step <단계이름> <패키지...>
+  local label="$1"; shift
+  local out="" rc=0
+  out=$(apt_install "$@") || rc=$?
+  case "$rc" in
+    0) done_ "설치: $out" ;;
+    1) skip "이미 모두 설치됨" ;;
+    *) die "$label 설치 실패 — 위 apt 출력을 본다 (패키지: $*)" ;;
+  esac
 }
 
 # ---------------------------------------------------------------- apt
 step "apt 기반 패키지"
-if out=$(apt_install "${APT_PACKAGES[@]}"); then done_ "설치: $out"; else skip "이미 모두 설치됨"; fi
+apt_step "apt 기반 패키지" "${APT_PACKAGES[@]}"
 
 # ---------------------------------------------------------------- gh
 # Ubuntu 공식 저장소의 gh 는 한참 낡았다(26.04 기준 2.46 vs 2.100).
@@ -72,7 +101,7 @@ else
 fi
 
 step "gh"
-if out=$(apt_install gh); then done_ "설치: $out"; else skip "이미 설치됨 ($(gh --version 2>/dev/null | head -1))"; fi
+apt_step "gh" gh
 
 # ---------------------------------------------------------------- 타임존
 step "타임존"
@@ -224,14 +253,19 @@ step "검증"
 FAILED=()
 # claude·codex 는 스스로 업데이트한다. 교체되는 찰나에 부르면 빈 값이 나와
 # 멀쩡한 환경이 실패로 잡힌다. 몇 번 다시 물어본다.
+# `| head -1` 로 자르면서 종료코드를 버리면, 실패한 명령이 뭔가 뱉기만 해도
+# 성공으로 읽힌다. 전체 출력을 먼저 받아 종료코드까지 확인한 뒤 첫 줄만 쓴다.
+# (`if out=$(...)` 형태라 여기서도 errexit 가 억제되지만, 종료코드를 직접 본다.)
 probe() {
   local out i
   for i in 1 2 3; do
-    out=$("$@" 2>/dev/null | head -1) || true
-    if [ -n "$out" ]; then printf '%s' "$out"; return 0; fi
+    if out=$("$@" 2>/dev/null) && [ -n "$out" ]; then
+      printf '%s' "${out%%$'\n'*}"   # 첫 줄만
+      return 0
+    fi
     if [ "$i" -lt 3 ]; then sleep 2; fi
   done
-  return 0   # 끝내 비면 check 가 실패로 잡는다
+  return 1   # 빈 값이 check 로 넘어가 실패로 잡힌다
 }
 
 check() { # check <설명> <기대> <실제>

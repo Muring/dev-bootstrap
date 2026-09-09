@@ -64,6 +64,7 @@ users:
     exit 1
   }
   wsl.exe -d $Distro -- true    # 첫 부팅 → cloud-init 실행
+  if ($LASTEXITCODE -ne 0) { throw "$Distro 첫 부팅에 실패했다 (exit $LASTEXITCODE)." }
   Ok "$Distro 설치 및 초기화"
 
   # cloud-init 이 조용히 무시되면 여기서 드러난다. 다음 단계로 넘기지 않는다.
@@ -94,5 +95,13 @@ else git clone -q $Repo ~/dev-bootstrap; fi
 bash ~/dev-bootstrap/linux/setup.sh
 "@ -replace "`r`n","`n"
 wsl.exe -d $Distro -u $User -- bash -lc $sh
+# setup.sh 는 검증에 실패하면 0 이 아닌 코드로 끝난다. 그걸 확인하지 않으면
+# 리눅스 쪽이 반쯤 실패했는데 Windows 는 "완료" 라고 말한다.
+if ($LASTEXITCODE -ne 0) {
+  Warn "setup.sh 가 실패했다 (exit $LASTEXITCODE)."
+  Warn "로그: \\wsl.localhost\$Distro\home\$User\dev-bootstrap-setup.log"
+  Warn "고친 뒤 다시 돌린다: wsl -d $Distro -u $User -- bash ~/dev-bootstrap/linux/setup.sh"
+  exit $LASTEXITCODE
+}
 
 Write-Host "`n완료. 남은 것: claude / codex login / gh auth login / Orca 계정 로그인" -ForegroundColor Cyan
