@@ -4,21 +4,28 @@
 
 ## 쓰는 법
 
-새 Windows PC 에 **Claude Code 만 설치**하고, 클로드에게 이렇게 말한다:
+새 Windows PC 에는 **git 도 Claude Code 도 없다.** 첫 발만 손으로 뗀다.
+
+```powershell
+# Windows (관리자 PowerShell) — git 없이 받아서 실행한다
+irm https://raw.githubusercontent.com/Muring/dev-bootstrap/main/windows/bootstrap.ps1 `
+  -OutFile $env:TEMP\bootstrap.ps1
+powershell -ExecutionPolicy Bypass -File $env:TEMP\bootstrap.ps1
+```
+
+이게 WSL2 + Ubuntu 를 올리고, 그 안에서 저장소를 clone 한 뒤 `setup.sh` 까지 돌린다.
+(Ubuntu WSL 이미지는 `ubuntu-wsl` 이 git·curl 을 끌어오므로 안쪽 clone 은 안전하다.)
+
+`setup.sh` 가 `skills/dev-setup` 을 `~/.claude/skills/` 로 링크한 **다음부터** 클로드에게
+말로 시킬 수 있다:
 
 > 개발환경 구축해줘
 
-`skills/dev-setup` 이 깔려 있으면 클로드가 아래 절차를 알아서 밟는다.
-손으로 하려면:
+즉 **스킬은 저절로 생기지 않는다.** 이 저장소가 심어준다. 첫 PC 에서는 위 두 줄이 먼저다.
 
-```powershell
-# Windows (관리자 PowerShell) — WSL 설치부터 끝까지
-git clone https://github.com/Muring/dev-bootstrap.git
-powershell -ExecutionPolicy Bypass -File dev-bootstrap\windows\bootstrap.ps1
-```
+이미 WSL 이 있다면 Ubuntu 안에서 이것만:
 
 ```bash
-# 이미 WSL 이 있다면 Ubuntu 안에서 이것만
 git clone https://github.com/Muring/dev-bootstrap.git ~/dev-bootstrap
 GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev-bootstrap/linux/setup.sh
 ```
