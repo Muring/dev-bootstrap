@@ -48,6 +48,7 @@ GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev-bootstrap/linux/setup.
 | 셸 | zsh + autosuggestions + syntax-highlighting, `.zshrc` |
 | git | `init.defaultBranch=main`, credential.helper → Windows GCM |
 | Claude | `~/.claude/settings.json` (기존 파일은 덮어쓰지 않는다) |
+| Claude 커맨드 | `~/.claude/commands` → 이 저장소 `commands/` 링크. 슬래시 커맨드(`/commit`) |
 | Orca | Windows 앱이 `~/.local/bin/orca-ide` 브리지를 만든다 → `orca-ide skills install` |
 
 ## 자동화하지 않는 것
@@ -71,6 +72,10 @@ GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev-bootstrap/linux/setup.
 
 환경 구성이 바뀌면 **여기를 고치고 커밋한다.** 클로드가 그때그때 다른 명령을 치면
 PC 마다 결과가 갈린다. `linux/files/` 안의 dotfile 이 실제 배포본이다.
+
+`skills/` 와 `commands/` 는 홈으로 **복사가 아니라 링크**된다. 그래서 여기를 고치고
+`git pull` 하면 그 PC 에 바로 반영된다 — 다시 `setup.sh` 를 돌릴 필요가 없다.
+반대로 홈 쪽에서 고치면 저장소를 고치는 것이니 커밋해야 다른 PC 로 따라간다.
 
 ### `setup.sh` 의 헬퍼
 

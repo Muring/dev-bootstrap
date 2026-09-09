@@ -38,6 +38,7 @@ description: 새 PC(또는 새 WSL 배포판)에 이 사용자의 표준 개발�
    node -v && yarn -v && claude --version && codex --version
    getent passwd "$USER" | cut -d: -f7      # /usr/bin/zsh
    git config --global --list
+   ls -l ~/.claude/skills/dev-setup ~/.claude/commands   # 둘 다 저장소로 가는 링크
    ```
 
 5. **남은 대화형 작업을 보고한다.** 아래 넷은 브라우저 로그인이라 자동화할 수 없다.
@@ -60,3 +61,8 @@ description: 새 PC(또는 새 WSL 배포판)에 이 사용자의 표준 개발�
 - 스크립트가 하는 일을 클로드가 개별 명령으로 재현하지 않는다. PC 마다 결과가 갈린다.
   절차를 바꿔야 하면 **스크립트를 고치고 커밋한다.**
 - 이 스킬은 프로젝트 클론·`.env`·DB 접속을 다루지 않는다. 그건 각 저장소의 CLAUDE.md 소관이다.
+- `~/.claude/skills/dev-setup` 과 `~/.claude/commands` 는 저장소로 가는 **링크**다.
+  슬래시 커맨드를 고치거나 더할 때는 `~/dev-bootstrap/commands/` 를 고치고 커밋한다 —
+  홈 쪽에 파일을 새로 만들면 그 PC 에만 남는다.
+  둘 중 하나가 링크가 아니면 `setup.sh` 는 경고만 하고 건드리지 않는다.
+  그때는 기존 내용을 저장소로 옮긴 뒤 실제 디렉터리를 지우고 다시 돌린다.

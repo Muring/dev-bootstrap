@@ -267,6 +267,17 @@ else
   done_ "~/.claude/skills/dev-setup → 저장소 (git pull 하면 같이 갱신된다)"
 fi
 
+# ---------------------------------------------------------------- claude 커맨드
+# 슬래시 커맨드(/commit 등)는 사용자 레벨에 있어야 모든 저장소에서 뜬다.
+# 스킬과 같은 이유로 링크로 심는다 — git pull 이 곧 갱신이다.
+step "Claude 커맨드"
+if [ -e "$HOME/.claude/commands" ] && [ ! -L "$HOME/.claude/commands" ]; then
+  warn "~/.claude/commands 가 심볼릭 링크가 아니다 — 손대지 않는다"
+else
+  ln -sfn "$REPO_DIR/../commands" "$HOME/.claude/commands"
+  done_ "~/.claude/commands → 저장소 (git pull 하면 같이 갱신된다)"
+fi
+
 # ---------------------------------------------------------------- 검증
 # 출력만 하지 않는다. 실제로 돌려보고, 하나라도 어긋나면 0 이 아닌 코드로 끝낸다.
 step "검증"
@@ -303,6 +314,10 @@ done
 [ -e "$HOME/.claude/skills/dev-setup" ] \
   && done_ "스킬 dev-setup" \
   || { warn "스킬 dev-setup 없음"; FAILED+=("스킬 dev-setup"); }
+# 디렉터리가 아니라 파일이 보이는지 본다. 링크만 서 있고 안이 비면 커맨드는 안 뜬다.
+[ -f "$HOME/.claude/commands/commit.md" ] \
+  && done_ "커맨드 /commit" \
+  || { warn "커맨드 /commit 없음"; FAILED+=("커맨드 /commit"); }
 
 # ---------------------------------------------------------------- 결과
 cat <<'MANUAL'
