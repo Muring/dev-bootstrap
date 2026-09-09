@@ -48,7 +48,7 @@ GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev-bootstrap/linux/setup.
 | 셸 | zsh + autosuggestions + syntax-highlighting, `.zshrc` |
 | git | `init.defaultBranch=main`, credential.helper → Windows GCM |
 | Claude | `~/.claude/settings.json` (기존 파일은 덮어쓰지 않는다) |
-| Claude 커맨드 | `~/.claude/commands` → 이 저장소 `commands/` 링크. 슬래시 커맨드(`/commit`) |
+| Claude 커맨드 | `~/.claude/commands` → 이 저장소 `commands/` 링크. `/commit`, `/blog-draft` |
 | Orca | Windows 앱이 `~/.local/bin/orca-ide` 브리지를 만든다 → `orca-ide skills install` |
 
 ## 자동화하지 않는 것
