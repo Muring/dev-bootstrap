@@ -1,0 +1,42 @@
+# ---- WSL: Windows 경로에서 시작하면 홈으로 ----
+# 인자 없는 `wsl` 은 Windows 현재 폴더(/mnt/...)를 물려받는다.
+# 일부러 /mnt 에서 시작하려면: WSL_KEEP_CWD=1 을 붙인다.
+if [[ -z "${WSL_KEEP_CWD:-}" && "$PWD" == /mnt/* ]]; then
+  cd "$HOME"
+fi
+
+# ---- 히스토리 ----
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE INC_APPEND_HISTORY
+
+# ---- 완성 ----
+autoload -Uz compinit && compinit
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' menu select
+
+# ---- 프롬프트 (git 브랜치 포함) ----
+autoload -Uz vcs_info
+precmd() { vcs_info }
+zstyle ':vcs_info:git:*' formats ' %F{yellow}(%b)%f'
+setopt PROMPT_SUBST
+PROMPT='%F{green}%n%f:%F{blue}%~%f${vcs_info_msg_0_} %# '
+
+# ---- 위/아래 방향키로 접두사 검색 ----
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey '^[[A' up-line-or-beginning-search
+bindkey '^[[B' down-line-or-beginning-search
+
+# ---- fnm ----
+export PATH="$HOME/.local/share/fnm:$PATH"
+eval "$(fnm env --use-on-cd --shell zsh)"
+
+# ---- 플러그인 (순서 중요: syntax-highlighting 이 마지막) ----
+source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# 회색 제안을 -> 키로 수락
+bindkey '^[[C' forward-char

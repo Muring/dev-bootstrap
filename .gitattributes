@@ -1,0 +1,5 @@
+* text=auto eol=lf
+# PowerShell 은 CRLF + UTF-8 BOM 이어야 한다. BOM 이 없으면 Windows PowerShell 5.1 이
+# .ps1 을 cp949 로 읽어 한글 주석이 깨지고 파서가 죽는다.
+*.ps1 text eol=crlf
+*.sh  text eol=lf
