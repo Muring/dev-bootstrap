@@ -30,6 +30,9 @@ zle -N down-line-or-beginning-search
 bindkey '^[[A' up-line-or-beginning-search
 bindkey '^[[B' down-line-or-beginning-search
 
+# ---- 사용자 명령 (mkb, Orca 브리지) ----
+export PATH="$HOME/.local/bin:$PATH"
+
 # ---- fnm ----
 export PATH="$HOME/.local/share/fnm:$PATH"
 eval "$(fnm env --use-on-cd --shell zsh)"

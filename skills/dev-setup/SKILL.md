@@ -1,6 +1,6 @@
 ---
 name: dev-setup
-description: 새 PC(또는 새 WSL 배포판)에 이 사용자의 표준 개발환경을 구축한다. "개발환경 구축해줘", "새 컴퓨터 세팅", "dev 환경 복원", "WSL 다시 깔았어" 같은 요청에 쓴다. 프로젝트 클론은 포함하지 않는다 — 공통 환경(WSL·Ubuntu·zsh·fnm/Node·Claude·Codex·Orca 스킬)만 다룬다.
+description: 새 PC(또는 새 WSL 배포판)에 이 사용자의 표준 개발환경을 구축한다. "개발환경 구축해줘", "새 컴퓨터 세팅", "dev 환경 복원", "WSL 다시 깔았어" 같은 요청에 쓴다. 개인 MuRing-KB를 제외한 프로젝트 클론은 포함하지 않는다 — 공통 환경(WSL·Ubuntu·zsh·fnm/Node·Claude·Codex·Orca 스킬)만 다룬다.
 ---
 
 # 개발환경 구축
@@ -20,8 +20,16 @@ description: 새 PC(또는 새 WSL 배포판)에 이 사용자의 표준 개발�
 1. **저장소 확보.** `~/dev/dev-bootstrap` 이 있으면 `git pull --ff-only`, 없으면
    `git clone https://github.com/Muring/dev-bootstrap.git ~/dev/dev-bootstrap`.
 
-2. **실행.**
+2. **설치 위치 선택 후 실행.** Windows에서 WSL 설치를 진행하기 전에 항상 선택지를 제시한다.
+   - Windows 기본 위치 (기존 Ubuntu가 있으면 현재 위치 유지)
+   - 사용 가능한 각 로컬 드라이브의 `드라이브:\WSL\Ubuntu` (가능하면 여유 공간도 표시)
+   - 사용자 지정 폴더
+   사용자가 이번 설치 위치를 이미 지정했으면 그 선택을 사용한다. 미지정이면 응답을 받은 뒤 실행하며
+   C/D나 기본 위치를 임의로 고르지 않는다. WSL 내부 setup.sh는 배포판 위치를 변경하지 않는다.
+
    - Windows: `powershell -ExecutionPolicy Bypass -File windows\bootstrap.ps1`
+     사용자가 지정한 드라이브는 `-InstallDrive D`, 폴더는 `-InstallLocation 'D:\WSL\Ubuntu'`로 전달한다.
+     미지정이면 스크립트의 선택 메뉴가 입력을 기다린다. 기존 배포판의 자동 이동은 하지 않는다.
      관리자 권한이 없으면 **사용자에게 관리자 PowerShell 로 실행해달라고 요청한다.**
      스크립트를 우회해 직접 `wsl --install` 을 두드리지 않는다.
    - WSL: `bash ~/dev/dev-bootstrap/linux/setup.sh`
@@ -29,9 +37,14 @@ description: 새 PC(또는 새 WSL 배포판)에 이 사용자의 표준 개발�
      값을 지어내지 말고 사용자에게 묻는다.
 
    WSL에서는 Orca 이름 생성 패치도 자동 실행된다. 검증된 Windows Orca 1.4.202만 지원하며,
-   미설치·다른 빌드·파일 잠금이면 미완료로 멈춘다. 오류를 무시하고 완료로 보고하지 않는다.
-   파일 잠금이면 Orca를 완전히 종료한 뒤 재실행한다. 앱을 임의로 종료하지 않는다.
+   미설치·다른 빌드·파일 잠금이면 최종 미완료 목록에 기록한다. 오류를 무시하고 완료로 보고하지 않는다.
+   스킬 설치가 먼저 끝난 뒤 파일 잠금이 남으면 Orca를 완전히 종료하고 패치만 재실행한다. 앱을 임의로 종료하지 않는다.
    다른 버전은 README의 Orca 항목에 따라 호환성을 확인한다.
+
+   MuRing-KB도 clone·Codex 지침 등록·`mkb` 설치까지 실행한다.
+   private 저장소 인증 실패는 미완료다. `gh auth login --hostname github.com` 후
+   `bash ~/dev/dev-bootstrap/linux/setup-kb.sh`로 KB만 재시도할 수 있다.
+   기존 KB는 자동 pull하지 않는다. 새 Codex 세션에서 등록된 지침을 사용한다.
 
 3. **재부팅·shutdown 이 필요한 지점을 그냥 넘기지 않는다.**
    - WSL 기능이 처음 켜진 PC 는 재부팅해야 `wsl --install` 이 끝난다.
@@ -65,7 +78,7 @@ description: 새 PC(또는 새 WSL 배포판)에 이 사용자의 표준 개발�
 - `setup.sh` 는 멱등하다. 실패하면 고치고 **다시 통째로 돌린다** — 중간부터 손으로 잇지 않는다.
 - 스크립트가 하는 일을 클로드가 개별 명령으로 재현하지 않는다. PC 마다 결과가 갈린다.
   절차를 바꿔야 하면 **스크립트를 고치고 커밋한다.**
-- 이 스킬은 프로젝트 클론·`.env`·DB 접속을 다루지 않는다. 그건 각 저장소의 CLAUDE.md 소관이다.
+- 이 스킬은 개인 MuRing-KB 이외의 프로젝트 클론·`.env`·DB 접속을 다루지 않는다. 그건 각 저장소의 CLAUDE.md 소관이다.
 - `~/.claude/skills/dev-setup` 과 `~/.claude/commands` 는 저장소로 가는 **링크**다.
   슬래시 커맨드를 고치거나 더할 때는 `~/dev/dev-bootstrap/commands/` 를 고치고 커밋한다 —
   홈 쪽에 파일을 새로 만들면 그 PC 에만 남는다.

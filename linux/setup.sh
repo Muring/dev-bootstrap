@@ -7,15 +7,18 @@ TIMEZONE="${TIMEZONE:-Asia/Seoul}"
 FNM_DIR="$HOME/.local/share/fnm"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FILES_DIR="$REPO_DIR/files"
+export PATH="$HOME/.local/bin:$PATH"
+# 버전 검증 중 Corepack 다운로드 확인 입력을 기다리지 않는다.
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 # 기반 이미지에 이미 있을 수 있지만, 없는 환경도 있으므로 명시한다.
-APT_PACKAGES=(build-essential ca-certificates curl git unzip zsh)
+APT_PACKAGES=(build-essential ca-certificates curl git unzip zsh python3)
 NPM_GLOBALS=(@anthropic-ai/claude-code @openai/codex)
 
 # 이 스크립트의 설치 가지는 아직 실제 신규 환경에서 돌아본 적이 없다.
 # 처음 터지는 자리를 바로 알 수 있게, 단계 이름과 줄번호를 남기고 로그를 파일로 뜬다.
 LOG="${SETUP_LOG:-$HOME/dev/dev-bootstrap-setup.log}"
-if : >>"$LOG" 2>/dev/null; then
+if mkdir -p "$(dirname "$LOG")" && : >>"$LOG" 2>/dev/null; then
   exec > >(tee -a "$LOG") 2>&1
   printf '\n===== %s =====\n' "$(date '+%F %T')"
 else
@@ -97,6 +100,16 @@ apt_step() { # apt_step <단계이름> <버전명령|-> <패키지...>
   esac
 }
 
+# 권한 입력은 다운로드 전에 끝낸다. 비대화형 실행에서 비밀번호를 기다리지 않는다.
+step "설치 전 확인"
+[ "$(id -u)" -ne 0 ] || die "sudo로 전체 스크립트를 실행하지 말고 실제 개발 계정으로 실행한다."
+if [ -t 0 ]; then
+  sudo -v || die "sudo 인증 실패"
+else
+  sudo -n true || die "sudo 인증이 필요하다. WSL 터미널에서 sudo -v 후 setup.sh 를 실행한다."
+fi
+command -v timeout >/dev/null 2>&1 || die "coreutils의 timeout 명령이 필요하다."
+
 # ---------------------------------------------------------------- apt
 step "apt 기반 패키지"
 apt_step "apt 기반 패키지" - "${APT_PACKAGES[@]}"
@@ -176,7 +189,7 @@ for pkg in "${NPM_GLOBALS[@]}"; do
   if npm ls -g --depth=0 "$pkg" >/dev/null 2>&1; then
     skip "$pkg 이미 있음"
   else
-    npm install -g "$pkg" >/dev/null
+    npm install -g "$pkg"
     done_ "$pkg 설치"
   fi
 done
@@ -235,39 +248,6 @@ else
   done_ "settings.json 작성"
 fi
 
-# Both Windows bootstrap and direct WSL setup reach this step.
-step "Orca WSL 자동 이름 생성 패치"
-if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] || grep -qi microsoft /proc/version; then
-  command -v powershell.exe >/dev/null 2>&1 || die "Windows PowerShell 을 찾을 수 없음 (WSL interop/PATH 확인)"
-  orca_fix=$(wslpath -w "$REPO_DIR/../windows/fix-orca-wsl-rename.ps1")
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$orca_fix" \
-    || die "Orca 이름 생성 패치 미완료 — 위 안내 확인 후 setup.sh 재실행"
-  done_ "Orca 이름 생성 패치 체크섬 확인"
-else
-  skip "Windows WSL 전용 패치라 건너뜀"
-fi
-
-# ---------------------------------------------------------------- orca 스킬
-step "Orca 스킬"
-ORCA="${ORCA_CLI_COMMAND:-orca-ide}"
-# `skills install` 은 인자가 없으면 사용법만 찍고 exit 0 을 낸다.
-# 이름을 명시하고, 성공 여부는 종료코드가 아니라 설치된 디렉터리로 판정한다.
-ORCA_SKILLS=(computer-use orca-cli orchestration)
-if command -v "$ORCA" >/dev/null 2>&1; then
-  args=()
-  for s in "${ORCA_SKILLS[@]}"; do args+=(--skill "$s"); done
-  "$ORCA" skills install "${args[@]}" >/dev/null 2>&1 || true
-  for s in "${ORCA_SKILLS[@]}"; do
-    if [ -d "$HOME/.agents/skills/$s" ] || [ -d "$HOME/.claude/skills/$s" ]; then
-      done_ "$s"
-    else
-      warn "$s 설치 안 됨"
-    fi
-  done
-else
-  warn "$ORCA 없음 — Windows 에서 Orca 를 설치하고 WSL 터미널을 한 번 열면 브리지가 생긴다"
-fi
-
 # ---------------------------------------------------------------- dev-setup 스킬
 # 이 저장소의 스킬을 심어야 다음부터 "개발환경 구축해줘" 가 통한다.
 step "dev-setup 스킬"
@@ -292,7 +272,7 @@ fi
 
 # ---------------------------------------------------------------- 검증
 # 출력만 하지 않는다. 실제로 돌려보고, 하나라도 어긋나면 0 이 아닌 코드로 끝낸다.
-step "검증"
+step "기본 개발환경 검증"
 FAILED=()
 # claude·codex 는 스스로 업데이트한다. 교체되는 찰나에 부르면 빈 값이 나와
 # 멀쩡한 환경이 실패로 잡힌다. 몇 번 다시 물어본다.
@@ -315,6 +295,48 @@ check "git"     ""               "$(probe git --version)"
 check "로그인 셸" "/usr/bin/zsh"   "$(getent passwd "$USER" | cut -d: -f7)"
 check "타임존"   "$TIMEZONE"      "$(timedatectl show -p Timezone --value 2>/dev/null)"
 
+[ -e "$HOME/.claude/skills/dev-setup" ] \
+  && done_ "스킬 dev-setup" \
+  || { warn "스킬 dev-setup 없음"; FAILED+=("스킬 dev-setup"); }
+# 디렉터리가 아니라 파일이 보이는지 본다. 링크만 서 있고 안이 비면 커맨드는 안 뜬다.
+[ -f "$HOME/.claude/commands/commit.md" ] \
+  && done_ "커맨드 /commit" \
+  || { warn "커맨드 /commit 없음"; FAILED+=("커맨드 /commit"); }
+
+# ---------------------------------------------------------------- MuRing-KB
+step "MuRing-KB 설치 및 Codex 등록"
+KB_FAILED=0
+timeout --foreground 300s bash "$REPO_DIR/setup-kb.sh" || KB_FAILED=1
+if [ "$KB_FAILED" -eq 0 ]; then
+  done_ "MuRing-KB 등록 및 mkb 실행 확인"
+else
+  warn "KB 미완료 — 위 안내 확인 후 bash $REPO_DIR/setup-kb.sh 또는 전체 setup.sh 재실행"
+fi
+
+[ "$KB_FAILED" -eq 0 ] || FAILED+=("MuRing-KB 설치·등록")
+
+# ---------------------------------------------------------------- orca 스킬
+step "Orca 스킬"
+ORCA="${ORCA_CLI_COMMAND:-orca-ide}"
+# `skills install` 은 인자가 없으면 사용법만 찍고 exit 0 을 낸다.
+# 이름을 명시하고, 성공 여부는 종료코드가 아니라 설치된 디렉터리로 판정한다.
+ORCA_SKILLS=(computer-use orca-cli orchestration)
+if command -v "$ORCA" >/dev/null 2>&1; then
+  args=()
+  for s in "${ORCA_SKILLS[@]}"; do args+=(--skill "$s"); done
+  timeout --foreground 120s "$ORCA" skills install "${args[@]}" \
+    || warn "Orca 스킬 설치 호출 실패 또는 120초 초과 — 설치된 파일을 확인한다"
+  for s in "${ORCA_SKILLS[@]}"; do
+    if [ -d "$HOME/.agents/skills/$s" ] || [ -d "$HOME/.claude/skills/$s" ]; then
+      done_ "$s"
+    else
+      warn "$s 설치 안 됨"
+    fi
+  done
+else
+  warn "$ORCA 없음 — Windows 에서 Orca 를 설치하고 WSL 터미널을 한 번 열면 브리지가 생긴다"
+fi
+
 for s_ in "${ORCA_SKILLS[@]:-}"; do
   [ -n "$s_" ] || continue
   if [ -d "$HOME/.agents/skills/$s_" ] || [ -d "$HOME/.claude/skills/$s_" ]; then
@@ -323,13 +345,21 @@ for s_ in "${ORCA_SKILLS[@]:-}"; do
     warn "스킬 $s_ 없음"; FAILED+=("스킬 $s_")
   fi
 done
-[ -e "$HOME/.claude/skills/dev-setup" ] \
-  && done_ "스킬 dev-setup" \
-  || { warn "스킬 dev-setup 없음"; FAILED+=("스킬 dev-setup"); }
-# 디렉터리가 아니라 파일이 보이는지 본다. 링크만 서 있고 안이 비면 커맨드는 안 뜬다.
-[ -f "$HOME/.claude/commands/commit.md" ] \
-  && done_ "커맨드 /commit" \
-  || { warn "커맨드 /commit 없음"; FAILED+=("커맨드 /commit"); }
+# ---------------------------------------------------------------- Orca 패치 (마지막)
+# 스킬 설치는 실행 중인 앱을 사용할 수 있으므로 패치는 그 뒤에 한다.
+step "Orca WSL 자동 이름 생성 패치"
+if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] || grep -qi microsoft /proc/version; then
+  if command -v powershell.exe >/dev/null 2>&1 \
+      && orca_fix=$(wslpath -w "$REPO_DIR/../windows/fix-orca-wsl-rename.ps1") \
+      && timeout --foreground 180s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$orca_fix"; then
+    done_ "Orca 이름 생성 패치 체크섬 확인"
+  else
+    warn "Orca 패치 미완료 — 앱 설치/버전/파일 잠금/WSL interop 확인 후 재실행"
+    FAILED+=("Orca 이름 생성 패치")
+  fi
+else
+  skip "Windows WSL 전용 패치라 건너뜀"
+fi
 
 # ---------------------------------------------------------------- 결과
 cat <<'MANUAL'
@@ -339,8 +369,12 @@ cat <<'MANUAL'
 ──────────────────────────────────────────────
   claude          → 최초 실행 시 로그인
   codex login
-  gh auth login
-  Orca            → 앱에서 계정 로그인
+  gh auth login --hostname github.com  → KB 다운로드 권한
+  Orca            → 설치·로그인 후 WSL 터미널을 열어 브리지 생성
+                    스킬 설치 후 앱을 완전히 종료하고 이름 생성 패치 재실행
+  KB 재시도       → bash ~/dev/dev-bootstrap/linux/setup-kb.sh
+  Orca 패치만     → Windows에서 powershell -ExecutionPolicy Bypass -File
+                    <bootstrap 저장소>\windows\fix-orca-wsl-rename.ps1
 MANUAL
 
 if [ ${#FAILED[@]} -gt 0 ]; then
