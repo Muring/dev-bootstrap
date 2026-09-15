@@ -1,0 +1,22 @@
+{
+  "version": "1.4.202",
+  "originalSha256": "902c9d805b6fd3ece1cf9a08779b57a8b8f8cbdf93deb4195edc6d65f1974833",
+  "patchedSha256": "cd511087241940ea9058eb281c10f9538c3d260cf0db564c9121621e1ccbf546",
+  "edits": [
+    {
+      "offset": 194446,
+      "remove": 228,
+      "text": "bf1e5137d341b1fedcb8237d8678fed9e1fffb4dc89b8b59dce4a2fb2851edcb\",\"blockSize\":4194304,\"blocks\":[\"0498ddae3a80f346149703006e452e75fcd72bedede1a14ed18396ee99751927\",\"8f4eb3512ea539e08a6f0d75c79cdfae833f523f9583b2aff2bffcf0bd398127"
+    },
+    {
+      "offset": 5642264,
+      "remove": 572,
+      "text": "// parent would drop the only account of the failure.\nfs.mkdirSync(require('node:path').dirname(logPath), { recursive: true })\n// Why: a broken install repeats this on every relaunch; keep the trail bounded.\nlet flags = 'a'\ntry {\nflags = fs.statSync(logPath).size > 262144 ? 'w' : 'a'\n} catch {\nflags = 'a'\n}\nconst descriptor = fs.openSync(logPath, flags, 0o600)\ntry {\nfs.writeSync(descriptor, entry)\n} finally {\nfs.closeSync(descriptor)\n}\nreturn true\n} catch {\n"
+    },
+    {
+      "offset": 11074356,
+      "remove": 257,
+      "text": "async function fCi(e,t,n,r){if(n)return{kind:`remote`,cwd:e,execute:(e,t,r,i)=>n.executeCommitMessagePlan(e,t,r,i),missingBinaryLocation:`remote PATH`};let d=process.platform===`win32`?w.d(e)?.distro:void 0,i=await sq(t,r.getAgentEnvResolvers(),d?{runtime:`wsl`,wslDistro:d}:void 0);return i.ok?{kind:`local`,cwd:e,...d?{wslDistro:d}:{},...i.env?{env:i.env}:{}}:null}"
+    }
+  ]
+}

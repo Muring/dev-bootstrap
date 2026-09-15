@@ -14,7 +14,7 @@ NPM_GLOBALS=(@anthropic-ai/claude-code @openai/codex)
 
 # 이 스크립트의 설치 가지는 아직 실제 신규 환경에서 돌아본 적이 없다.
 # 처음 터지는 자리를 바로 알 수 있게, 단계 이름과 줄번호를 남기고 로그를 파일로 뜬다.
-LOG="${SETUP_LOG:-$HOME/dev-bootstrap-setup.log}"
+LOG="${SETUP_LOG:-$HOME/dev/dev-bootstrap-setup.log}"
 if : >>"$LOG" 2>/dev/null; then
   exec > >(tee -a "$LOG") 2>&1
   printf '\n===== %s =====\n' "$(date '+%F %T')"
@@ -233,6 +233,18 @@ if [ -f "$HOME/.claude/settings.json" ]; then
 else
   cp "$FILES_DIR/claude-settings.json" "$HOME/.claude/settings.json"
   done_ "settings.json 작성"
+fi
+
+# Both Windows bootstrap and direct WSL setup reach this step.
+step "Orca WSL 자동 이름 생성 패치"
+if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ] || grep -qi microsoft /proc/version; then
+  command -v powershell.exe >/dev/null 2>&1 || die "Windows PowerShell 을 찾을 수 없음 (WSL interop/PATH 확인)"
+  orca_fix=$(wslpath -w "$REPO_DIR/../windows/fix-orca-wsl-rename.ps1")
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$orca_fix" \
+    || die "Orca 이름 생성 패치 미완료 — 위 안내 확인 후 setup.sh 재실행"
+  done_ "Orca 이름 생성 패치 체크섬 확인"
+else
+  skip "Windows WSL 전용 패치라 건너뜀"
 fi
 
 # ---------------------------------------------------------------- orca 스킬

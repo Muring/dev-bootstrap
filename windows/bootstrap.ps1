@@ -90,17 +90,17 @@ if (Test-Path $orcaExe) {
 Step "$Distro 안에서 setup.sh 실행"
 $sh = @"
 set -e
-if [ -d ~/dev-bootstrap/.git ]; then git -C ~/dev-bootstrap pull --ff-only -q
-else git clone -q $Repo ~/dev-bootstrap; fi
-bash ~/dev-bootstrap/linux/setup.sh
+if [ -d ~/dev/dev-bootstrap/.git ]; then git -C ~/dev/dev-bootstrap pull --ff-only -q
+else git clone -q $Repo ~/dev/dev-bootstrap; fi
+bash ~/dev/dev-bootstrap/linux/setup.sh
 "@ -replace "`r`n","`n"
 wsl.exe -d $Distro -u $User -- bash -lc $sh
 # setup.sh 는 검증에 실패하면 0 이 아닌 코드로 끝난다. 그걸 확인하지 않으면
 # 리눅스 쪽이 반쯤 실패했는데 Windows 는 "완료" 라고 말한다.
 if ($LASTEXITCODE -ne 0) {
   Warn "setup.sh 가 실패했다 (exit $LASTEXITCODE)."
-  Warn "로그: \\wsl.localhost\$Distro\home\$User\dev-bootstrap-setup.log"
-  Warn "고친 뒤 다시 돌린다: wsl -d $Distro -u $User -- bash ~/dev-bootstrap/linux/setup.sh"
+  Warn "로그: \\wsl.localhost\$Distro\home\$User\dev\dev-bootstrap-setup.log"
+  Warn "고친 뒤 다시 돌린다: wsl -d $Distro -u $User -- bash ~/dev/dev-bootstrap/linux/setup.sh"
   exit $LASTEXITCODE
 }
 

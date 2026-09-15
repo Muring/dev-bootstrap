@@ -26,8 +26,8 @@ powershell -ExecutionPolicy Bypass -File $env:TEMP\bootstrap.ps1
 이미 WSL 이 있다면 Ubuntu 안에서 이것만:
 
 ```bash
-git clone https://github.com/Muring/dev-bootstrap.git ~/dev-bootstrap
-GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev-bootstrap/linux/setup.sh
+git clone https://github.com/Muring/dev-bootstrap.git ~/dev/dev-bootstrap
+GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev/dev-bootstrap/linux/setup.sh
 ```
 
 두 스크립트 모두 **멱등하다.** 몇 번을 돌려도 같은 상태가 된다.
@@ -49,7 +49,40 @@ GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev-bootstrap/linux/setup.
 | git | `init.defaultBranch=main`, credential.helper → Windows GCM |
 | Claude | `~/.claude/settings.json` (기존 파일은 덮어쓰지 않는다) |
 | Claude 커맨드 | `~/.claude/commands` → 이 저장소 `commands/` 링크. `/commit`, `/blog-draft` |
-| Orca | Windows 앱이 `~/.local/bin/orca-ide` 브리지를 만든다 → `orca-ide skills install` |
+| Orca 이름 생성 | WSL 설치 시 검증된 Windows 1.4.202 앱 패치 자동 적용·백업·체크섬 검사 |
+| Orca 스킬 | Windows 앱이 `~/.local/bin/orca-ide` 브리지를 만든다 → `orca-ide skills install` |
+
+## Orca WSL 자동 이름 생성 오류
+
+WSL의 Codex가 정상인데 워크트리 브랜치·폴더 이름 생성에서
+`codex not found on PATH`가 뜨는 오류를 설치 중 보정한다.
+Orca가 작업 경로의 WSL 배포판을 계정 환경 준비와 실행에 전달하도록 하는 로컬 패치다.
+
+- Windows `bootstrap.ps1` → WSL `setup.sh`와 WSL 직접 설치 모두 자동 적용한다.
+- **Windows Orca 1.4.202의 검증된 app.asar만 지원한다.** 원본·패치본 SHA-256으로
+  판별한다. 미설치·다른 빌드·파일 잠금은 설치를 미완료로 끝낸다.
+- Orca 설치 후 완전히 종료하고 실행한다. 설치 프로그램이 작업 중인 앱을 자동 종료하지 않는다.
+  이미 패치된 경우에는 실행 중이어도 체크섬 확인만 한다.
+- 앱 전체를 저장소에 넣지 않고 `windows/patches/`의 작은 변경 데이터로 재구성한다.
+  적용 결과는 기존에 실사용 성공이 보고된 패치본과 SHA-256이 같아야 한다.
+- 원본 백업은 `resources/app.asar.bootstrap-wsl-rename.original`에 보관한다.
+  업데이트로 패치가 사라질 수 있으며, 다른 버전은 수정 필요 여부부터 다시 점검한다.
+  앱 자동 업데이트 감시·재패치는 하지 않는다.
+
+패치만 재실행하거나 기본 경로(`%LOCALAPPDATA%\Programs\orca`)가 다른 경우:
+
+```powershell
+# 저장소 루트, Orca를 종료한 상태에서 실행
+powershell -ExecutionPolicy Bypass -File windows\fix-orca-wsl-rename.ps1
+# 사용자 지정 설치 경로
+powershell -ExecutionPolicy Bypass -File windows\fix-orca-wsl-rename.ps1 -AppDir 'D:\Apps\orca'
+# 백업 복구 (패치된 설치본에만 적용)
+powershell -ExecutionPolicy Bypass -File windows\fix-orca-wsl-rename.ps1 -Restore
+```
+
+패치 회귀 검증은 설치본을 건드리지 않는 임시 폴더에서 수행한다:
+`powershell -ExecutionPolicy Bypass -File tests\orca-wsl-rename.ps1 -OriginalArchive <검증된 원본 app.asar>`.
+로그인 후 새 워크트리 첫 메시지로 실제 제목 생성까지 확인한다.
 
 ## 자동화하지 않는 것
 
@@ -123,7 +156,7 @@ stdout 에 뭔가 뱉기만 해도 성공으로 읽힌다. 전체를 받고 나�
 설치 가지는 아직 실제 신규 환경에서 돌아본 적이 없다. 그래서 **터졌을 때 바로 고칠 수
 있게** 만들어 뒀다. 미리 다 맞히려 하지 말고, 터지면 그걸 보고 고친다.
 
-- 실행 로그가 `~/dev-bootstrap-setup.log` 에 쌓인다(`SETUP_LOG` 로 바꾼다).
+- 실행 로그가 `~/dev/dev-bootstrap-setup.log` 에 쌓인다(`SETUP_LOG` 로 바꾼다).
 - 실패하면 **어느 단계에서, 몇 번째 줄에서** 죽었는지 찍고 멈춘다.
 - 그 출력을 그대로 클로드에게 주면 된다.
 - 고친 뒤에는 **통째로 다시 돌린다.** 멱등하므로 끝난 단계는 스킵된다.
