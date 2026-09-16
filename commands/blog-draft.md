@@ -15,7 +15,7 @@ allowed-tools: Bash, Read, Glob, Grep, Write
 `$ARGUMENTS` — 앞의 `kebab-case` 토큰이 있으면 slug, 나머지는 주제 힌트나 커밋 범위(`abc123..HEAD`, `--since=2026-08-01`)다.
 아무것도 없으면 slug 도 주제도 직접 정한다.
 
-**블로그 저장소 경로**는 `$MUBLOG_DIR`, 없으면 `$HOME/mublog` 다.
+**블로그 저장소 경로**는 `$MUBLOG_DIR`, 없으면 `$HOME/dev/mublog` 다.
 아래에서 `$MUBLOG` 로 줄여 쓴다. 없으면 거기서 멈추고 경로를 묻는다.
 
 셸이 zsh 다. `src/app/[slug]/` 처럼 대괄호가 든 경로는 **큰따옴표로 감싼다** —
