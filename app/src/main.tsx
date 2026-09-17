@@ -64,7 +64,7 @@ function App(){
     update('selected',next);
   }
   return <div className="layout">
-    <aside><div className="brand"><span className="brand-icon">↗</span> Dev Bootstrap</div><p className="aside-caption">새 PC, 익숙한 개발환경.</p><nav>{pages.map((name,index)=><button key={name} className={visiblePage===index?'active':''} disabled={busy||!access[index]} title={!access[index]?'앞 단계의 필수 작업을 완료하세요.':undefined} onClick={()=>navigate(index)}><span>{index===6?'↻':index+1}</span>{name}</button>)}</nav><div className="aside-bottom">WINDOWS + UBUNTU<br/><small>MuRing · 설치 마법사 0.1.2</small></div></aside>
+    <aside><div className="brand"><span className="brand-icon">↗</span> Dev Bootstrap</div><p className="aside-caption">새 PC, 익숙한 개발환경.</p><nav>{pages.map((name,index)=><button key={name} className={visiblePage===index?'active':''} disabled={busy||!access[index]} title={!access[index]?'앞 단계의 필수 작업을 완료하세요.':undefined} onClick={()=>navigate(index)}><span>{index===6?'↻':index+1}</span>{name}</button>)}</nav><div className="aside-bottom">WINDOWS + UBUNTU<br/><small>MuRing · 설치 마법사 0.1.3</small></div></aside>
     <main><header><div className="eyebrow">{visiblePage===6?'유지 관리':`STEP ${visiblePage+1} / 6`}</div><h1>{pages[visiblePage]}</h1><p>{['현재 PC 상태를 확인하고 사용할 Ubuntu를 정합니다.','필요한 도구만 선택하세요. 권장 항목도 자유롭게 바꿀 수 있습니다.','설치 전에 변경할 내용을 확인하세요.','실행 터미널의 안내에 따라 진행하세요. 완료한 단계는 실제 상태를 다시 확인합니다.','도구 설치와 계정 연결은 별도입니다. 필요한 계정에 로그인하세요.','선택한 항목과 계정 연결 상태를 확인하세요.','개발 도구를 재설치하지 않고 공용 명령과 스킬만 업데이트합니다.'][visiblePage]}</p></header><div className="page-content" key={visiblePage} tabIndex={0} aria-label="단계 본문">
     {error&&<div role="alert" className="banner error">{error}</div>}{notice&&<div role="status" className="banner">{notice}</div>}
     {snapshot.phase==='reboot'&&<div className="banner">WSL 준비 후 Windows 재부팅이 필요합니다. 다시 앱을 열면 이어서 진행합니다. <button disabled={busy} onClick={()=>action(()=>api.reboot())}>재부팅</button></div>}
@@ -72,9 +72,9 @@ function App(){
     {visiblePage===0&&<>
       <section className="card"><div className="section-heading"><h2>PC 상태</h2><button disabled={busy} onClick={()=>action(inspect)}>환경 확인 / 새로고침</button></div>
       {!inspection?<p>환경 확인을 눌러 시작하세요. 설치나 설정 변경 없이 현재 상태를 확인합니다.</p>:<>
-      <div className="facts"><div>Windows 11 x64<strong>{inspection.supported?'지원 환경':'지원 환경 확인 필요'}</strong></div><div>WSL<strong>{inspection.wslReady?'준비됨':'준비 필요'}</strong></div><div>Orca<strong>{inspection.orcaInstalled?'설치됨':'설치 가능'}</strong></div></div>
+      <div className="facts"><div>Windows 11 x64<strong>{inspection.supported?'지원 환경':'지원 환경 확인 필요'}</strong></div><div>WSL<strong>{inspection.wslReady?'준비됨':'준비 필요'}</strong><div className="fact-action"><button disabled={busy||!inspection.supported||inspection.wslReady} onClick={()=>action(async()=>{await save();const result=await api.prepare();setNotice(result.reboot?'재부팅 후 앱을 다시 열어 주세요.':'WSL 준비를 확인했습니다. Ubuntu 설치를 진행하세요.');})}>{inspection.wslReady?'WSL 준비됨':'WSL 준비'}</button></div></div><div>Orca<strong>{inspection.orcaInstalled?'설치됨':'설치 가능'}</strong><div className="fact-action">{orcaInstallButton}</div></div></div>
       {inspection.error&&<p className="warning">{inspection.error}</p>}
-      {orcaInstallButton}<button disabled={busy||!inspection.supported} onClick={()=>action(async()=>{await save();const result=await api.prepare();setNotice(result.reboot?'재부팅 후 앱을 다시 열어 주세요.':'WSL 준비를 확인했습니다. Ubuntu 설치를 진행하세요.');})}>WSL 준비 / 업데이트</button></>}
+      </>}
       </section>
       <section className="card"><h2>Ubuntu와 개발 계정</h2>
       <label className="field">배포판<select disabled={busy} value={config.distro} onChange={e=>{setConfig({...config,distro:e.target.value,installLocation:inspection?.distros.find(i=>i.name===e.target.value)?.location||''});}}>{Array.from(new Set(['Ubuntu',...(inspection?.distros.map(i=>i.name)||[])])).map(name=><option key={name}>{name}</option>)}</select></label>

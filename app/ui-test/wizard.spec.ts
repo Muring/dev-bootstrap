@@ -63,8 +63,19 @@ test('changing content targets requires another preview',async({page})=>{
 
 test('future stages stay locked and installer is launched only on request',async({page})=>{
   for(const name of ['변경 내용 확인','설치 진행','로그인 · 연동','완료'])await expect(page.locator('nav').getByRole('button',{name,exact:false})).toBeDisabled();
-  await page.getByRole('button',{name:'Orca 다운로드 · 설치'}).click();
+  const wsl=page.getByRole('button',{name:'WSL 준비됨'});
+  const orca=page.getByRole('button',{name:'Orca 다운로드 · 설치'});
+  await expect(wsl).toBeDisabled();
+  const a=await wsl.boundingBox();const b=await orca.boundingBox();
+  expect(b!.x).toBeGreaterThan(a!.x+a!.width+15);
+  expect(b!.y).toBe(a!.y);
+  await page.screenshot({path:'test-results/pc-state.png'});
+  await orca.click();
   expect(await page.evaluate(()=>(window as any).orcaInstallerOpened)).toBe(true);
+  await page.evaluate(()=>{(window as any).testState.inspection.orcaInstalled=true;});
+  await expect(page.getByRole('button',{name:'Orca 설치됨'})).toBeDisabled();
+  await page.evaluate(()=>{(window as any).testState.inspection.wslReady=false;});
+  await expect(page.getByRole('button',{name:'WSL 준비',exact:true})).toBeEnabled();
   expect(await page.evaluate(()=>(window as any).installerRan)).toBeUndefined();
 });
 test('only body scrolls at the minimum window size',async({page})=>{

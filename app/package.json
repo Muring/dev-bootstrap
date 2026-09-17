@@ -1,6 +1,6 @@
 {
   "name": "dev-bootstrap-wizard",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Windows and Ubuntu development setup wizard",
   "author": "MuRing",

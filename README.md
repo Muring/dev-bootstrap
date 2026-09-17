@@ -6,10 +6,10 @@ Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마�
 
 ## 앱으로 시작하기
 
-1. [DevBootstrap-0.1.2-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.2-x64.exe/DevBootstrap-0.1.2-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
-2. 다운로드한 `DevBootstrap-0.1.2-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
+1. [DevBootstrap-0.1.3-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.3-x64.exe/DevBootstrap-0.1.3-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
+2. 다운로드한 `DevBootstrap-0.1.3-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
 3. **환경 확인**을 누릅니다. WSL, 기존 Ubuntu, 드라이브 여유 공간과 Orca 상태를 검사합니다.
-4. WSL이 없으면 **WSL 준비 / 업데이트**를 누릅니다. 이 단계에서만 Windows 관리자 권한을 요청합니다.
+4. WSL이 없으면 **WSL 준비**를 누릅니다. 이 단계에서만 Windows 관리자 권한을 요청합니다.
 5. 재부팅이 필요하면 작업을 저장하고 재부팅한 다음 같은 앱을 다시 엽니다.
 6. Ubuntu 저장 위치와 Linux 사용자명을 선택하고 **Ubuntu 설치**를 누릅니다. 기존 Ubuntu라면 현재 위치와 개발 계정을 사용합니다.
 7. **설치 구성**에서 원하는 항목을 선택합니다. `Recommended`는 권장 표시이며 선택을 해제할 수 있습니다.
@@ -17,6 +17,10 @@ Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마�
 9. 별도 Ubuntu 실행 창의 안내를 따릅니다. 기존 계정의 sudo 비밀번호가 필요하면 그 창에 입력합니다.
 10. 앱의 **로그인 · 연동**에서 GitHub·Claude·Codex 로그인과 KB·Orca 연결을 마칩니다.
 11. 선택한 항목의 설치와 계정 연결을 마친 뒤 **설치 완료 확인**을 누릅니다.
+
+PC 상태의 WSL 버튼은 가운데, Orca 버튼은 오른쪽 상태 칸 아래에 표시합니다.
+준비된 WSL과 설치된 Orca의 설치 버튼은 비활성화됩니다. **환경 확인 / 새로고침**으로 상태를 다시 확인할 수 있습니다.
+WSL 최신 버전 비교 기능은 없으며, 필요할 때 Windows PowerShell에서 `wsl --update`로 업데이트합니다.
 
 제목·단계 메뉴·이전/다음 버튼은 고정되고 본문만 스크롤됩니다.
 환경 확인 전에는 설치 구성을 열 수 없고, 구성 검토 전에는 설치를 시작할 수 없습니다.
@@ -26,8 +30,8 @@ Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마�
 
 **사용자 PC에 Git, Node, Python을 미리 설치하거나 이 저장소를 clone할 필요가 없습니다.**
 실행 파일에는 앱 런타임과 설치 스크립트가 들어 있습니다. 커맨드·스킬은 설치 시 GitHub에서 별도로 받습니다. 다운로드에는 인터넷이 필요합니다.
-[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/DevBootstrap-0.1.2-x64.exe)에서 변경 내용과
-[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.2-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
+[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/DevBootstrap-0.1.3-x64.exe)에서 변경 내용과
+[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.3-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
 현재 버전은 서명되지 않은 **초기 검증판(Pre-release)**입니다. 신규 Windows 전체 설치 검증은 아직 남아 있습니다.
 GitHub의 `Source code (zip/tar.gz)`는 개발용 소스이며, 설치할 때는 `.exe` 파일을 받으세요.
 
@@ -49,7 +53,7 @@ Windows 저장 위치는 Ubuntu 가상 디스크의 위치이며, Ubuntu 내부 
 
 ## 커맨드·스킬만 업데이트하기
 
-**기존 0.1.0 사용자는 0.1.2 EXE를 한 번 새로 받으세요.** 이후 커맨드·스킬 내용 변경에는 EXE 재다운로드가 필요 없습니다.
+**기존 0.1.0 사용자는 0.1.3 EXE를 한 번 새로 받으세요.** 이후 커맨드·스킬 내용 변경에는 EXE 재다운로드가 필요 없습니다.
 
 1. Windows에서 앱을 열고 대상 Ubuntu와 Linux 계정을 확인합니다.
 2. **설치 구성**에서 Claude 스킬·Claude 커맨드·Codex 공용 스킬 중 사용할 항목을 선택합니다.
@@ -275,7 +279,7 @@ npm test
 npm run dist:win
 ```
 
-Windows 포터블 산출물: `app/release/DevBootstrap-0.1.2-x64.exe`
+Windows 포터블 산출물: `app/release/DevBootstrap-0.1.3-x64.exe`
 
 Windows에서 개발용 앱을 실행하려면 `npm start`를 사용합니다.
 Linux에서 실행하면 화면 개발만 가능하며 Windows 설치 기능은 차단됩니다.
