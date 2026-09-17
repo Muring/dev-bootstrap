@@ -5,13 +5,15 @@ $errors = $null
 $bootstrap = Join-Path $PSScriptRoot '..\windows\bootstrap.ps1'
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($bootstrap, [ref]$tokens, [ref]$errors)
 if ($errors.Count) { throw ($errors | Out-String) }
-$names = @('Resolve-WslInstallLocation', 'Assert-WslInstallLocation', 'Get-WslInstallArguments', 'Get-WslDriveOptions', 'Select-WslInstallLocation')
+$names = @('Resolve-WslInstallLocation', 'Assert-WslInstallLocation', 'Get-WslInstallArguments', 'Get-WslDriveOptions', 'Select-WslInstallLocation', 'Decode-WslText', 'Get-WslLines')
 foreach ($name in $names) {
   $function = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name }, $true)
   if (-not $function) { throw "Missing helper: $name" }
   . ([scriptblock]::Create($function.Extent.Text))
 }
 function Assert($condition, $message) { if (-not $condition) { throw $message } }
+Assert ((Decode-WslText ([Text.Encoding]::Unicode.GetBytes('제공된 이름의 배포가 없습니다.'))) -ceq '제공된 이름의 배포가 없습니다.') 'UTF-16LE wsl.exe message decoding failed'
+Assert (((Get-WslLines "Ubuntu`r`n`r`nDebian`r`n") -join '|') -eq 'Ubuntu|Debian') 'Distribution list parsing failed'
 function Reject([scriptblock]$action) {
   $rejected = $false
   try { & $action | Out-Null } catch { $rejected = $true }

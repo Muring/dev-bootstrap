@@ -20,6 +20,32 @@ function Ok($m)   { Write-Host "    OK  $m" -ForegroundColor Green }
 function Warn($m) { Write-Host "    !   $m" -ForegroundColor Yellow }
 
 # Keep these functions in this file: the initial bootstrap is downloaded standalone.
+# 이 스크립트는 단독 다운로드로 실행되므로 app-host.ps1 의 wsl.exe 읽기 도우미를 그대로 둔다.
+# wsl.exe 는 자기 메시지를 BOM 없는 UTF-16LE 로 쓰고, Stop 모드에서 stderr 를 리디렉션하면
+# 첫 줄에서 NativeCommandError 로 끝나므로 바이트로 읽어 NUL 유무로 인코딩을 판별한다.
+function Quote-Argument([string]$Value) {
+  if ($Value -match '^[A-Za-z0-9_./:=+-]+$') { return $Value }
+  return '"' + ([regex]::Replace(([regex]::Replace($Value, '(\\*)"', '$1$1\"')), '(\\+)$', '$1$1')) + '"'
+}
+function Decode-WslText([byte[]]$Bytes) {
+  if ($Bytes.Length -eq 0) { return '' }
+  $encoding = if ([Array]::IndexOf($Bytes, [byte]0) -ge 0) { [Text.Encoding]::Unicode } else { New-Object Text.UTF8Encoding $false }
+  return $encoding.GetString($Bytes).TrimStart([char]0xFEFF)
+}
+function Invoke-Wsl([string[]]$Arguments) {
+  $info = New-Object Diagnostics.ProcessStartInfo
+  $info.FileName = 'wsl.exe'
+  $info.Arguments = (($Arguments | ForEach-Object { Quote-Argument $_ }) -join ' ')
+  $info.UseShellExecute = $false; $info.CreateNoWindow = $true
+  $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
+  $process = [Diagnostics.Process]::Start($info)
+  $stdout = New-Object IO.MemoryStream; $stderr = New-Object IO.MemoryStream
+  $errorCopy = $process.StandardError.BaseStream.CopyToAsync($stderr)
+  $process.StandardOutput.BaseStream.CopyTo($stdout)
+  $errorCopy.Wait(); $process.WaitForExit()
+  return @{ ExitCode=$process.ExitCode; Output=(Decode-WslText $stdout.ToArray()); Error=(Decode-WslText $stderr.ToArray()) }
+}
+function Get-WslLines([string]$Text) { return @($Text -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 function Resolve-WslInstallLocation($Drive, $Location, $Distribution) {
   if ($Drive -and $Location) { throw '-InstallDrive 와 -InstallLocation 중 하나만 지정한다.' }
   if ($Drive) {
@@ -130,7 +156,7 @@ if (-not $admin) { throw "관리자 권한 PowerShell 에서 실행한다." }
 
 # ---------------------------------------------------------------- WSL
 Step "WSL / $Distro"
-$installed = (wsl.exe -l -q 2>$null) -replace "`0","" | ForEach-Object { $_.Trim() }
+$installed = Get-WslLines (Invoke-Wsl @('-l','-q')).Output
 $currentLocation = if ($installed -contains $Distro) { Get-WslInstallLocation $Distro } else { $null }
 $requestedLocation = Select-WslInstallLocation $Distro $currentLocation $InstallDrive $InstallLocation
 if ($installed -contains $Distro) {
@@ -138,7 +164,7 @@ if ($installed -contains $Distro) {
   Assert-WslInstallLocation $requestedLocation $actualLocation
   Ok "$Distro 이미 설치됨 — 저장 위치: $actualLocation"
 } else {
-  $wslHelp = if ($requestedLocation) { ((wsl.exe --help) -join "`n") -replace "`0", '' } else { '' }
+  $wslHelp = if ($requestedLocation) { (Invoke-Wsl @('--help')).Output } else { '' }
   $installArguments = @(Get-WslInstallArguments $Distro $requestedLocation $wslHelp)
   if ($requestedLocation) { Step "Ubuntu 저장 위치: $requestedLocation" }
   else { Step 'Ubuntu 저장 위치: Windows 기본 위치' }
@@ -180,8 +206,7 @@ users:
   Ok "$Distro 설치 및 초기화"
 
   # cloud-init 이 조용히 무시되면 여기서 드러난다. 다음 단계로 넘기지 않는다.
-  wsl.exe -d $Distro -- id -u $User 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
+  if ((Invoke-Wsl @('-d',$Distro,'--','id','-u',$User)).ExitCode -ne 0) {
     throw "cloud-init 이 사용자 '$User' 를 만들지 못했다. " +
           "'wsl -d $Distro' 로 직접 들어가 사용자를 만든 뒤 linux/setup.sh 를 돌린다."
   }
@@ -189,8 +214,7 @@ users:
 }
 
 # 기존 배포판도 지정 사용자를 확인한 뒤 Linux 설정으로 진입한다.
-wsl.exe -d $Distro -- id -u $User 2>$null | Out-Null
-if ($LASTEXITCODE -ne 0) {
+if ((Invoke-Wsl @('-d',$Distro,'--','id','-u',$User)).ExitCode -ne 0) {
   throw "배포판 '$Distro' 에 사용자 '$User' 가 없다. -User 에 기존 Linux 사용자명을 지정한다."
 }
 
@@ -214,8 +238,9 @@ bash ~/dev/dev-bootstrap/linux/setup.sh
 "@ -replace "`r`n","`n"
 if ($ConfigFile) {
   $resolvedConfig = (Resolve-Path -LiteralPath $ConfigFile).Path
-  $linuxConfig = (wsl.exe -d $Distro -u $User -- wslpath -a $resolvedConfig | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0) { throw '설정 파일 경로 변환 실패' }
+  $converted = Invoke-Wsl @('-d',$Distro,'-u',$User,'--','wslpath','-a',$resolvedConfig)
+  if ($converted.ExitCode -ne 0) { throw '설정 파일 경로 변환 실패' }
+  $linuxConfig = $converted.Output.Trim()
   $sh = $sh.Replace('bash ~/dev/dev-bootstrap/linux/setup.sh', 'bash ~/dev/dev-bootstrap/linux/setup.sh --config "$1"')
   wsl.exe -d $Distro -u $User -- bash -lc $sh bootstrap $linuxConfig
 } else {

@@ -29,6 +29,28 @@ function Native($Arguments) {
   & wsl.exe @Arguments
   if ($LASTEXITCODE -ne 0) { throw "WSL command failed: exit $LASTEXITCODE" }
 }
+# wsl.exe prints its own messages as UTF-16LE without BOM, and the inbox stub (WSL not installed)
+# reports on stderr. Under $ErrorActionPreference='Stop', a redirected stderr line becomes a
+# terminating NativeCommandError before any NUL stripping runs, so read raw bytes instead.
+function Decode-WslText([byte[]]$Bytes) {
+  if ($Bytes.Length -eq 0) { return '' }
+  $encoding = if ([Array]::IndexOf($Bytes, [byte]0) -ge 0) { [Text.Encoding]::Unicode } else { New-Object Text.UTF8Encoding $false }
+  return $encoding.GetString($Bytes).TrimStart([char]0xFEFF)
+}
+function Invoke-Wsl([string[]]$Arguments) {
+  $info = New-Object Diagnostics.ProcessStartInfo
+  $info.FileName = 'wsl.exe'
+  $info.Arguments = (($Arguments | ForEach-Object { Quote-Argument $_ }) -join ' ')
+  $info.UseShellExecute = $false; $info.CreateNoWindow = $true
+  $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
+  $process = [Diagnostics.Process]::Start($info)
+  $stdout = New-Object IO.MemoryStream; $stderr = New-Object IO.MemoryStream
+  $errorCopy = $process.StandardError.BaseStream.CopyToAsync($stderr)
+  $process.StandardOutput.BaseStream.CopyTo($stdout)
+  $errorCopy.Wait(); $process.WaitForExit()
+  return @{ ExitCode=$process.ExitCode; Output=(Decode-WslText $stdout.ToArray()); Error=(Decode-WslText $stderr.ToArray()) }
+}
+function Get-WslLines([string]$Text) { return @($Text -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 try {
   $request = Get-Content -LiteralPath $RequestFile -Raw -Encoding UTF8 | ConvertFrom-Json
   switch ($request.action) {
@@ -36,10 +58,8 @@ try {
       Report-Progress 'Windows 버전과 지원 환경 확인' 0 4
       $build = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuildNumber
       Report-Progress 'WSL 준비 상태와 지원 기능 확인' 1 4
-      $help = ((& wsl.exe --help 2>&1) -join "`n") -replace "`0", ''
-      $ready = $false
-      & wsl.exe --status *> $null
-      if ($LASTEXITCODE -eq 0) { $ready = $true }
+      $help = Invoke-Wsl @('--help'); $help = $help.Output + $help.Error
+      $ready = (Invoke-Wsl @('--status')).ExitCode -eq 0
       Report-Progress 'Ubuntu 배포판과 저장 공간 확인' 2 4
       $distros = @()
       $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss'
@@ -78,14 +98,13 @@ try {
       Report-Progress 'WSL 구성 요소 다운로드 및 업데이트'
       & wsl.exe --update
       if ($LASTEXITCODE -ne 0) { throw 'WSL update failed. Review the terminal output and retry.' }
-      & wsl.exe --status *> $null
-      Write-Result @{ reboot=($LASTEXITCODE -ne 0); prepared=$true }
+      Write-Result @{ reboot=((Invoke-Wsl @('--status')).ExitCode -ne 0); prepared=$true }
     }
     'install' {
       Report-Progress 'Ubuntu 설치 대상과 사용자 확인'
       $config = $request.config
       if ($config.distro -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$' -or $config.user -notmatch '^[a-z_][a-z0-9_-]{0,31}$' -or $config.user -eq 'root') { throw 'Invalid distro/user' }
-      $installed = @((& wsl.exe -l -q 2>$null) -replace "`0", '' | ForEach-Object { $_.Trim() })
+      $installed = Get-WslLines (Invoke-Wsl @('-l','-q')).Output
       if ($installed -contains $config.distro) {
         Native @('-d',$config.distro,'-u',$config.user,'--exec','id','-u')
         Write-Result @{ installed=$true; existing=$true }; break
@@ -100,7 +119,7 @@ try {
         if (-not (Test-Path ([IO.Path]::GetPathRoot($full)))) { throw 'Drive does not exist' }
         if ((Test-Path -LiteralPath $full) -and (-not (Test-Path -LiteralPath $full -PathType Container) -or @(Get-ChildItem -LiteralPath $full -Force).Count -gt 0)) { throw 'Target folder must be empty' }
         Report-Progress 'WSL 저장 위치 기능 확인'
-      $help = ((& wsl.exe --help) -join "`n") -replace "`0", ''
+        $help = (Invoke-Wsl @('--help')).Output
         if ($help -notmatch '--location\b') { throw 'Update WSL before selecting a custom location' }
         $arguments += @('--location',$full)
       }
@@ -119,7 +138,7 @@ try {
       Report-Progress 'Ubuntu 기본 사용자와 설치 위치 검증'
       # Configure default user, preserving existing wsl.conf keys.
       $script = Join-Path $PSScriptRoot '..\linux\wsl-config.py'
-      $linuxScript = (& wsl.exe -d Ubuntu -- wslpath -a $script | Out-String).Trim()
+      $linuxScript = (Invoke-Wsl @('-d','Ubuntu','--','wslpath','-a',$script)).Output.Trim()
       Native @('-d','Ubuntu','-u','root','--exec','python3',$linuxScript,$config.user)
       if ($location) {
         $actual = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss' | Where-Object { $_.GetValue('DistributionName') -eq 'Ubuntu' } | ForEach-Object { [string]$_.GetValue('BasePath') }

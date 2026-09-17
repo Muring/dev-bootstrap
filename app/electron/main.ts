@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { StringDecoder } from 'node:string_decoder';
 import { OperationTracker, ProgressUpdate } from './progress';
 import { downloadOrca } from './orca';
+import { decodeNativeOutput } from './encoding';
 import { Config, ContentPreview, CONTENT_GROUPS, defaults, Inspection, InstallEvent, Item, Snapshot, validate } from './model';
 
 let window: BrowserWindow;
@@ -43,7 +44,7 @@ async function capture(executable: string, args: string[], timeout = 30000): Pro
     const decoder=new StringDecoder('utf8');let pending='';
     child.stderr.on('data', chunk => {stderr.push(chunk);pending+=decoder.write(chunk);const lines=pending.split('\n');pending=lines.pop()!;for(const line of lines)if(line.startsWith('BOOTSTRAP_PROGRESS ')&&operation.value===expectedOperation){try{report(JSON.parse(line.slice(19)));}catch{}}});
     child.on('error', error => {clearTimeout(timer); reject(error);});
-    child.on('close', code => {clearTimeout(timer); code === 0 ? resolve(Buffer.concat(stdout).toString('utf8').replace(/\0/g,'')) : reject(Error(Buffer.concat(stderr).toString('utf8').replace(/\0/g,'').split('\n').filter(line=>!line.startsWith('BOOTSTRAP_PROGRESS ')).join('\n') || `명령 실패 (${code})`));});
+    child.on('close', code => {clearTimeout(timer); code === 0 ? resolve(decodeNativeOutput(Buffer.concat(stdout))) : reject(Error(decodeNativeOutput(Buffer.concat(stderr)).split('\n').filter(line=>!line.startsWith('BOOTSTRAP_PROGRESS ')).join('\n') || `명령 실패 (${code})`));});
   });
 }
 async function helper(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, any>> {
