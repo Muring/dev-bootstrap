@@ -3,6 +3,9 @@
 사용자는 Releases에서 EXE만 다운로드합니다. Git clone과 아래 절차는 개발자에게만 필요합니다.
 검증이 끝나지 않은 버전은 Pre-release로 게시하고, 신규 Windows 전체 설치 검증을 마친 뒤 안정판 여부를 결정합니다.
 
+릴리스 표시 이름은 배포 EXE 파일명과 동일하게 지정합니다(예: `DevBootstrap-0.1.1-x64.exe`).
+Git 태그는 `v0.1.1` 형식을 사용하고, 검증판 여부는 GitHub의 Pre-release 표시로 구분합니다.
+
 ## 1. 버전과 문서
 
 저장소 루트에서 실행합니다. 아래 `0.1.1`은 다음 버전 예시이며 이미 배포한 버전을 재사용하지 않습니다.
@@ -63,7 +66,7 @@ git push origin v0.1.1
 gh release create v0.1.1 \
   app/release/DevBootstrap-0.1.1-x64.exe app/release/SHA256SUMS.txt \
   --verify-tag --draft --prerelease \
-  --title "Dev Bootstrap v0.1.1 — Preview" \
+  --title "DevBootstrap-0.1.1-x64.exe" \
   --notes-file docs/releases/v0.1.1.md
 ```
 
