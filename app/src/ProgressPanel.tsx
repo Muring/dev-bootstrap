@@ -13,6 +13,6 @@ export function ProgressPanel({operation,busy}:{operation?:Operation;busy:boolea
     <div className="operation-heading"><strong>{operation?.title||'작업 준비'}</strong><span>{states[status]} · {Math.floor(elapsed/60)}분 {elapsed%60}초</span></div>
     <div className="operation-current" role="status">{current?.label||'요청을 전달하고 있습니다.'}</div>
     {status==='running'&&(counts?<><progress aria-label="현재 작업 진행도" max={current!.total} value={current!.completed}/><small>{counts}{current?.unit!=='bytes'?' · 항목 수 기준이며 소요 시간 비율은 아닙니다.':''}</small></>:<><progress aria-label="현재 작업 진행 중"/><small>진행 수치를 제공하지 않는 작업입니다. 현재 과정과 경과 시간을 표시합니다.</small></>)}
-    {!!operation?.steps.length&&<details><summary>진행 과정 {operation.steps.length}개</summary><ol>{operation.steps.map((step,i)=><li key={i}><span>{step.status==='completed'?'✓':step.status==='running'?'…':states[step.status]}</span>{step.label}</li>)}</ol></details>}
+    {!!operation?.steps.length&&<details><summary>진행 과정 {operation.steps.length}개</summary><ol className="log-box" tabIndex={0} aria-label="작업 진행 이력">{operation.steps.map((step,i)=><li key={i}><span>{step.status==='completed'?'✓':step.status==='running'?'…':states[step.status]}</span>{step.label}</li>)}</ol></details>}
   </section>;
 }
