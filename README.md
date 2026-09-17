@@ -6,8 +6,8 @@ Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마�
 
 ## 앱으로 시작하기
 
-1. [DevBootstrap-0.1.3-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.3-x64.exe/DevBootstrap-0.1.3-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
-2. 다운로드한 `DevBootstrap-0.1.3-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
+1. [DevBootstrap-0.1.4-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.4-x64.exe/DevBootstrap-0.1.4-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
+2. 다운로드한 `DevBootstrap-0.1.4-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
 3. **환경 확인**을 누릅니다. WSL, 기존 Ubuntu, 드라이브 여유 공간과 Orca 상태를 검사합니다.
 4. WSL이 없으면 **WSL 준비**를 누릅니다. 이 단계에서만 Windows 관리자 권한을 요청합니다.
 5. 재부팅이 필요하면 작업을 저장하고 재부팅한 다음 같은 앱을 다시 엽니다.
@@ -30,8 +30,8 @@ WSL 최신 버전 비교 기능은 없으며, 필요할 때 Windows PowerShell�
 
 **사용자 PC에 Git, Node, Python을 미리 설치하거나 이 저장소를 clone할 필요가 없습니다.**
 실행 파일에는 앱 런타임과 설치 스크립트가 들어 있습니다. 커맨드·스킬은 설치 시 GitHub에서 별도로 받습니다. 다운로드에는 인터넷이 필요합니다.
-[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/DevBootstrap-0.1.3-x64.exe)에서 변경 내용과
-[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.3-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
+[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/DevBootstrap-0.1.4-x64.exe)에서 변경 내용과
+[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.4-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
 현재 버전은 서명되지 않은 **초기 검증판(Pre-release)**입니다. 신규 Windows 전체 설치 검증은 아직 남아 있습니다.
 GitHub의 `Source code (zip/tar.gz)`는 개발용 소스이며, 설치할 때는 `.exe` 파일을 받으세요.
 
@@ -39,6 +39,21 @@ GitHub의 `Source code (zip/tar.gz)`는 개발용 소스이며, 설치할 때는
 기존 WSL1 배포판의 자동 전환, 기존 Ubuntu의 이동·삭제, 다른 Linux 배포판은 지원하지 않습니다.
 Windows 저장 위치는 Ubuntu 가상 디스크의 위치이며, Ubuntu 내부 홈 경로는 `/home/<사용자>`입니다.
 새 Ubuntu 계정에는 개발용 WSL을 위한 비밀번호 없는 sudo 권한이 부여됩니다.
+
+## 작업 진행 상황과 선택 목록
+
+시간이 걸리는 작업은 제목 아래의 고정된 **작업 진행 상황** 패널에서 확인합니다.
+환경 확인, WSL·Ubuntu 준비, 개발환경 설치·재시도, 계정 로그인, 커맨드·스킬 확인·적용, Orca 다운로드, 재시작 모두 같은 패널을 사용합니다.
+
+- 현재 작업과 경과 시간, **진행 과정**을 펼친 단계 이력을 표시합니다.
+- Windows 검사와 Ubuntu 인증·도구 검사는 완료한 검사 항목 수를 표시합니다.
+- Orca 다운로드는 실제 받은 MB와 전체 크기, 퍼센트를 표시하고 이후 체크섬 검증·설치 창 실행을 구분합니다.
+- 커맨드·스킬 업데이트는 파일 다운로드 수, 검증, 백업, 연결 적용·복구 과정을 표시합니다.
+- WSL 설치나 로그인 창처럼 정확한 진행률을 제공하지 않는 외부 작업은 현재 과정과 경과 시간을 표시합니다. 예상 퍼센트나 남은 시간을 임의로 계산하지 않습니다.
+- 로그인·외부 설치 창·재부팅 대기, 실패, 취소는 완료와 구분합니다. 별도 창의 입력 요청은 해당 창에서 진행하세요.
+- 가장 최근 작업 과정은 `%LOCALAPPDATA%\dev-bootstrap\last-operation.json`에 남깁니다. 인증 명령의 원문 출력이나 토큰은 진행 패널에 수집하지 않습니다.
+
+배포판·저장 위치 드롭다운은 펼친 목록도 앱 스타일로 표시합니다. 방향키·Home/End로 이동하고 Enter로 선택합니다. Escape·Tab·목록 밖 클릭으로 닫을 수 있습니다.
 
 ## 설치 후와 다음 버전 사용
 
@@ -53,7 +68,7 @@ Windows 저장 위치는 Ubuntu 가상 디스크의 위치이며, Ubuntu 내부 
 
 ## 커맨드·스킬만 업데이트하기
 
-**기존 0.1.0 사용자는 0.1.3 EXE를 한 번 새로 받으세요.** 이후 커맨드·스킬 내용 변경에는 EXE 재다운로드가 필요 없습니다.
+**기존 0.1.0 사용자는 0.1.4 EXE를 한 번 새로 받으세요.** 이후 커맨드·스킬 내용 변경에는 EXE 재다운로드가 필요 없습니다.
 
 1. Windows에서 앱을 열고 대상 Ubuntu와 Linux 계정을 확인합니다.
 2. **설치 구성**에서 Claude 스킬·Claude 커맨드·Codex 공용 스킬 중 사용할 항목을 선택합니다.
@@ -279,7 +294,7 @@ npm test
 npm run dist:win
 ```
 
-Windows 포터블 산출물: `app/release/DevBootstrap-0.1.3-x64.exe`
+Windows 포터블 산출물: `app/release/DevBootstrap-0.1.4-x64.exe`
 
 Windows에서 개발용 앱을 실행하려면 `npm start`를 사용합니다.
 Linux에서 실행하면 화면 개발만 가능하며 Windows 설치 기능은 차단됩니다.

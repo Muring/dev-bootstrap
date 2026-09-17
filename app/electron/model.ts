@@ -6,7 +6,7 @@ export interface ContentPreview { commit: string; installedCommit: string; messa
 export interface InstallEvent { version: number; step: string; status: string; message: string; time: number }
 export interface LinuxInfo { osId: string; contentCommit?: string; users: string[]; user: string; zshrc: boolean; gitName: string; gitEmail: string; gitBranch: string; timezone: string; auth: Record<string, boolean>; tools: Record<string, boolean> }
 export interface Inspection { supported: boolean; windowsBuild?: number; wslReady: boolean; locationSupported: boolean; distros: {name: string; location: string; version: number}[]; drives: {root: string; freeGB: number}[]; orcaInstalled: boolean; patchSupported: boolean; patchApplied: boolean; linux?: LinuxInfo; error?: string }
-export interface Snapshot { config: Config; inspection?: Inspection; contentPreview?: ContentPreview; events: InstallEvent[]; busy: boolean; phase: string; logPath: string }
+export interface Snapshot { operation?: import('./progress').Operation; config: Config; inspection?: Inspection; contentPreview?: ContentPreview; events: InstallEvent[]; busy: boolean; phase: string; logPath: string }
 
 export function defaults(catalog: Item[], profile: Profile = 'muring'): Config {
   return { version: 1, profile, selected: catalog.filter(i => i.defaults[profile]).map(i => i.id), distro: 'Ubuntu', user: 'muring', installLocation: '', gitName: '', gitEmail: '', timezone: 'Asia/Seoul', kbRepo: 'https://github.com/Muring/muring-kb.git', kbDir: '~/dev/muring-kb', contentCommit: '' };

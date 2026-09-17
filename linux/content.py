@@ -16,7 +16,9 @@ def main():
     args = parser.parse_args()
     if os.getuid() == 0:
         raise ValueError('개발 계정에서 실행하세요. sudo는 필요하지 않습니다.')
-    store = ContentStore()
+    def progress(**event):
+        print('BOOTSTRAP_PROGRESS ' + json.dumps(event, ensure_ascii=False), file=sys.stderr, flush=True)
+    store = ContentStore(progress=progress)
     if args.action == 'preview':
         result = store.preview(args.commit)
     elif args.action == 'check':

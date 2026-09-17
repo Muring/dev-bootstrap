@@ -17,7 +17,10 @@ test('Orca download verifies checksum and cleans partial files on failure',async
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'bootstrap-orca-'));
  try {
   const fake=(async(url:any)=>String(url).includes('api.github.com')?Response.json(release):new Response(body)) as typeof fetch;
-  const file=await downloadOrca(directory,fake);assert.deepEqual(await fs.readFile(file),body);
+  const updates:any[]=[];
+  const file=await downloadOrca(directory,fake,event=>updates.push(event));
+  assert(updates.some(event=>event.unit==='bytes'&&event.completed===body.length&&event.total===body.length));
+  assert(updates.at(-1).label.includes('SHA-256'));assert.deepEqual(await fs.readFile(file),body);
   const corrupt=(async(url:any)=>String(url).includes('api.github.com')?Response.json(release):new Response(Buffer.alloc(body.length))) as typeof fetch;
   await assert.rejects(downloadOrca(directory,corrupt),/체크섬/);
   assert.deepEqual(await fs.readFile(file),body);

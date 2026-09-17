@@ -10,7 +10,11 @@ const assert = require('node:assert/strict');
   await page.getByRole('heading',{name:'환경 확인',exact:true}).waitFor();
   const result = await page.evaluate(async () => {
     const catalog=await window.bootstrap.catalog();
-    const state=await window.bootstrap.inspect();
+    const samples=[];const timer=setInterval(async()=>{samples.push((await window.bootstrap.snapshot()).operation?.status);},150);
+    const state=await window.bootstrap.inspect();clearInterval(timer);
+    if(!samples.includes('running'))throw Error('Live operation progress was not visible');
+    if(!state.operation.steps.some(step=>step.label.includes('Windows 검사 완료')))throw Error('Windows progress missing');
+    if(!state.operation.steps.some(step=>step.label.includes('Codex 로그인')))throw Error('Ubuntu progress missing');
     return {catalog:catalog.length,supported:state.inspection.supported,wsl:state.inspection.wslReady,linux:!!state.inspection.linux,os:state.inspection.linux?.osId,error:state.inspection.error};
   });
   assert.equal(result.catalog,21);

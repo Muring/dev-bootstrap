@@ -3,6 +3,8 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { StringDecoder } from 'node:string_decoder';
+import { OperationTracker, ProgressUpdate } from './progress';
 import { downloadOrca } from './orca';
 import { Config, ContentPreview, CONTENT_GROUPS, defaults, Inspection, InstallEvent, Item, Snapshot, validate } from './model';
 
@@ -17,6 +19,9 @@ let stateDir: string;
 let assets: string;
 let contentPreview: ContentPreview | undefined;
 let contentTarget = '';
+const operation=new OperationTracker();
+const report=(update:ProgressUpdate)=>operation.report(update);
+let trackingRun=false;
 
 function contentKey(value: Config) {
   return JSON.stringify([value.distro,value.user,value.selected.filter(id=>CONTENT_GROUPS.includes(id)).sort()]);
@@ -29,14 +34,16 @@ async function atomic(file: string, value: unknown) {
 }
 async function persist() { await atomic(path.join(stateDir, 'state.json'), {config, phase, currentEvents}); }
 async function capture(executable: string, args: string[], timeout = 30000): Promise<string> {
+  const expectedOperation=operation.value;
   return new Promise((resolve, reject) => {
     const child = spawn(executable, args, {windowsHide:true, shell:false});
     const stdout: Buffer[] = []; const stderr: Buffer[] = [];
     const timer = setTimeout(() => { child.kill(); reject(Error('명령 실행 시간이 초과되었습니다.')); }, timeout);
     child.stdout.on('data', chunk => stdout.push(chunk));
-    child.stderr.on('data', chunk => stderr.push(chunk));
+    const decoder=new StringDecoder('utf8');let pending='';
+    child.stderr.on('data', chunk => {stderr.push(chunk);pending+=decoder.write(chunk);const lines=pending.split('\n');pending=lines.pop()!;for(const line of lines)if(line.startsWith('BOOTSTRAP_PROGRESS ')&&operation.value===expectedOperation){try{report(JSON.parse(line.slice(19)));}catch{}}});
     child.on('error', error => {clearTimeout(timer); reject(error);});
-    child.on('close', code => {clearTimeout(timer); code === 0 ? resolve(Buffer.concat(stdout).toString('utf8').replace(/\0/g,'')) : reject(Error(Buffer.concat(stderr).toString('utf8').replace(/\0/g,'') || `명령 실패 (${code})`));});
+    child.on('close', code => {clearTimeout(timer); code === 0 ? resolve(Buffer.concat(stdout).toString('utf8').replace(/\0/g,'')) : reject(Error(Buffer.concat(stderr).toString('utf8').replace(/\0/g,'').split('\n').filter(line=>!line.startsWith('BOOTSTRAP_PROGRESS ')).join('\n') || `명령 실패 (${code})`));});
   });
 }
 async function helper(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, any>> {
@@ -45,16 +52,22 @@ async function helper(action: string, extra: Record<string, unknown> = {}): Prom
   const requestFile = path.join(stateDir, `${id}.request.json`);
   const resultFile = path.join(stateDir, `${id}.result.json`);
   await atomic(requestFile, {action, ...extra});
+  const helperLabels:Record<string,string>={inspect:'Windows 검사 시작',prepare:'Windows 관리자 권한 승인 대기',install:'Ubuntu 준비',launch:'실행 터미널 작업 · 입력 요청이 있으면 해당 창에서 진행하세요.',shutdown:'WSL 종료 및 재시작',reboot:'Windows 재부팅 예약'};
+  report({label:helperLabels[action]||action});
   // No execution deadline for visible login/install terminals. User can finish them.
   return new Promise((resolve, reject) => {
     const child = spawn('powershell.exe', ['-NoProfile','-ExecutionPolicy','Bypass','-File',path.join(assets,'windows/app-host.ps1'),'-RequestFile',requestFile,'-ResultFile',resultFile], {windowsHide:true, stdio:'ignore', shell:false});
-    child.on('error', reject);
+    let closed=false,seen=0;let polling:Promise<void>|undefined;
+    const poll=():Promise<void>=>{if(closed)return Promise.resolve();if(polling)return polling;polling=(async()=>{try{const lines=(await fs.readFile(resultFile+'.progress.jsonl','utf8')).split('\n').slice(0,-1);if(!closed){for(const line of lines.slice(seen)){try{report(JSON.parse(line));}catch{}}seen=lines.length;}}catch{}})().finally(()=>{polling=undefined;});return polling;};
+    const progressTimer=setInterval(()=>void poll(),250);
+    child.on('error', error=>{closed=true;clearInterval(progressTimer);reject(error);});
     child.on('close', async () => {
+      clearInterval(progressTimer);await polling;await poll();closed=true;
       try {
         const result = JSON.parse(await fs.readFile(resultFile,'utf8'));
         if (result.error) reject(Error(result.error)); else resolve(result);
       } catch (error) { reject(error); }
-      finally { await Promise.all([requestFile, resultFile, requestFile+'.system.json'].map(file => fs.rm(file,{force:true}).catch(()=>{}))); }
+      finally { await Promise.all([requestFile, resultFile, requestFile+'.system.json',resultFile+'.progress.jsonl'].map(file => fs.rm(file,{force:true}).catch(()=>{}))); }
     });
   });
 }
@@ -70,7 +83,11 @@ async function appendEvent(step: string, status: string, message: string) {
   if (!currentEvents) currentEvents = path.join(stateDir, `run-${Date.now()}.jsonl`);
   await fs.appendFile(currentEvents, JSON.stringify({version:1, step,status,message,time:Date.now()/1000})+'\n');
 }
-async function snapshot(): Promise<Snapshot> {return {config, inspection, contentPreview, events:await events(), busy, phase, logPath:currentEvents.replace(/\.jsonl$/,'.log')};}
+async function snapshot(): Promise<Snapshot> {
+  const history=await events();
+  if(trackingRun){const latest=Object.fromEntries(history.filter(e=>e.step!=='_run').map(e=>[e.step,e]));const active=history.filter(e=>e.step!=='_run').at(-1);if(active)report({label:`${catalog.find(i=>i.id===active.step)?.title||active.step} · ${active.message}`,completed:config.selected.filter(id=>['completed','failed','action-required','reboot-required'].includes(latest[id]?.status)).length,total:config.selected.length,unit:'items'});}
+  return {config, inspection, contentPreview, operation:operation.value, events:history, busy, phase, logPath:currentEvents.replace(/\.jsonl$/,'.log')};
+}
 async function inspect() {
   if (process.platform !== 'win32') {
     inspection = {supported:false,wslReady:false,locationSupported:false,distros:[],drives:[],orcaInstalled:false,patchSupported:false,patchApplied:false,error:'Windows 11 x64에서 실행하세요. 이 화면은 개발용 미리보기입니다.'};
@@ -79,10 +96,12 @@ async function inspect() {
   inspection = await helper('inspect') as Inspection;
   const distro = inspection.distros.find(i=>i.name === config.distro);
   if (distro) {
+    report({label:'Ubuntu 검사 시작 · WSL 응답 대기'});
     try {
       const script = await linuxPath(path.join(assets,'linux/inspect.sh'));
       inspection.linux = JSON.parse(await capture('wsl.exe',['-d',config.distro,'-u',config.user,'--exec','bash',script],120000));
     } catch (error) {
+      report({label:'기존 Ubuntu 기본 계정 확인 · WSL 응답 대기'});
       // Discover the existing default user rather than assume the Windows account name.
       try {
         const user = (await capture('wsl.exe',['-d',config.distro,'--exec','id','-un'])).trim();
@@ -102,13 +121,15 @@ async function inspect() {
   await persist();
   return snapshot();
 }
-async function guarded(action: () => Promise<unknown>) {
+async function guarded(title:string,action: () => Promise<unknown>) {
   if (busy) throw Error('진행 중인 작업이 끝난 후 다시 시도하세요.');
-  busy = true;
-  try {return await action();} finally {busy = false; await persist();}
+  busy = true;operation.start(title);
+  try {const result=await action();operation.finish('completed');return result;} catch(error){operation.finish('failed');if(operation.value)operation.value.current={label:String(error).slice(0,240)};throw error;} finally {trackingRun=false;busy = false;await fs.writeFile(path.join(stateDir,'last-operation.json'),JSON.stringify(operation.value,null,2)).catch(()=>{}); await persist();}
 }
 async function confirm(message: string, detail: string) {
-  return (await dialog.showMessageBox(window,{type:'question',buttons:['취소','진행'],defaultId:0,cancelId:0,message,detail})).response === 1;
+  report({label:message+' · 사용자 확인 대기'});
+  const approved=(await dialog.showMessageBox(window,{type:'question',buttons:['취소','진행'],defaultId:0,cancelId:0,message,detail})).response === 1;
+  if(!approved)operation.finish('cancelled');return approved;
 }
 async function previewContent() {
   await inspect();
@@ -159,13 +180,18 @@ async function run(step?: string) {
   phase = 'install';
   await persist();
   const script = await linuxPath(path.join(assets,'linux/app-launch.sh'));
+  trackingRun=true;
   const result = await helper('launch',{config,script,arguments:[await linuxPath(configFile),await linuxPath(currentEvents),step || '']});
+  trackingRun=false;
   const history = await events();
   if (!history.some(e=>e.step==='_run' && ['completed','incomplete','paused','failed'].includes(e.status))) {
     await appendEvent('_run','failed',`터미널이 종료되었습니다 (${result.exitCode}). sudo 인증과 터미널 출력을 확인하고 재시도하세요.`);
   }
   phase = 'connect';
   await inspect();
+  const finalEvents=await events();
+  const end=finalEvents.filter(e=>e.step==='_run').at(-1);
+  if(end?.status!=='completed'){report({label:end?.message||'미완료 항목을 확인하세요.'});operation.finish(end?.status==='failed'||finalEvents.some(e=>e.status==='failed')?'failed':'waiting');}
   return snapshot();
 }
 
@@ -190,36 +216,39 @@ async function main() {
   ipcMain.handle('snapshot',snapshot);
   ipcMain.handle('catalog',()=>catalog);
   ipcMain.handle('save',async(_event,value)=>{if(busy)throw Error('설치 중에는 구성을 변경할 수 없습니다.'); const next=validate(value,catalog); if(contentKey(config)!==contentKey(next)){contentPreview=undefined;next.contentCommit='';} if(config.distro!==next.distro||config.user!==next.user)inspection=undefined; if(JSON.stringify(config)!==JSON.stringify(next)) currentEvents=''; config=next; await persist(); return snapshot();});
-  ipcMain.handle('inspect',()=>guarded(inspect));
-  ipcMain.handle('orca-install',()=>guarded(async()=>{
+  ipcMain.handle('inspect',()=>guarded('환경 확인',inspect));
+  ipcMain.handle('orca-install',()=>guarded('Orca 다운로드 · 설치',async()=>{
     const current=await helper('inspect') as Inspection;
     if(!current.supported)throw Error('Windows 11 x64에서 실행하세요.');
     if(current.orcaInstalled)throw Error('Orca가 이미 설치되어 있습니다. 업데이트는 Orca 앱에서 진행하세요.');
-    const installer=await downloadOrca(path.join(stateDir,'downloads'));
+    const installer=await downloadOrca(path.join(stateDir,'downloads'),fetch,report);
+    report({label:'검증된 Orca 설치 창 열기'});
     const error=await shell.openPath(installer);
     if(error)throw Error(`Orca 설치 창을 열지 못했습니다: ${error}`);
+    report({label:'Orca 설치 창에서 설치를 마친 뒤 설치 상태를 확인하세요.'});operation.finish('waiting');
     return snapshot();
   }));
-  ipcMain.handle('content-preview' ,()=>guarded(previewContent));
-  ipcMain.handle('content-update',()=>guarded(updateContent));
-  ipcMain.handle('prepare',()=>guarded(async()=>{const result=await helper('prepare'); phase=result.reboot?'reboot':'inspect'; await inspect(); return {reboot:result.reboot};}));
-  ipcMain.handle('install',()=>guarded(async()=>{
+  ipcMain.handle('content-preview' ,()=>guarded('커맨드 · 스킬 버전 확인',previewContent));
+  ipcMain.handle('content-update',()=>guarded('커맨드 · 스킬 업데이트',updateContent));
+  ipcMain.handle('prepare',()=>guarded('WSL 준비',async()=>{const result=await helper('prepare'); phase=result.reboot?'reboot':'inspect'; await inspect();if(result.reboot){report({label:'Windows 재부팅 후 다시 실행하세요.'});operation.finish('waiting');} return {reboot:result.reboot};}));
+  ipcMain.handle('install',()=>guarded('Ubuntu 준비',async()=>{
     config=validate(config,catalog);
     const current=await helper('inspect') as Inspection;
     const existing=current.distros.find(i=>i.name===config.distro);
     if(existing && config.installLocation && existing.location.replace(/\\$/,'').toLowerCase()!==config.installLocation.replace(/\\$/,'').toLowerCase())throw Error('기존 Ubuntu는 자동 이동하지 않습니다. 현재 위치를 사용하세요.');
     if(existing && existing.version!==2)throw Error('WSL1 배포판입니다. 별도 백업 후 WSL2 전환을 진행하세요.');
-    const result=await helper('install',{config}); phase=result.restartWsl?'wsl-restart':'configure'; await inspect(); return result;
+    const result=await helper('install',{config}); phase=result.restartWsl?'wsl-restart':'configure'; await inspect();if(result.restartWsl){report({label:'Ubuntu 설정 반영을 위해 WSL 재시작이 필요합니다.'});operation.finish('waiting');} return result;
   }));
-  ipcMain.handle('run',(_event,step)=>guarded(()=>run(step)));
+  ipcMain.handle('run',(_event,step)=>guarded('개발환경 설치',()=>run(step)));
   ipcMain.handle('stop',async()=>{if(currentEvents && busy)await fs.writeFile(currentEvents.replace(/\.jsonl$/,'.stop'),'stop');});
-  ipcMain.handle('login',(_event,tool)=>guarded(async()=>{
+  ipcMain.handle('login',(_event,tool)=>guarded('계정 로그인',async()=>{
     if(!['gh','claude','codex'].includes(tool))throw Error('Unknown login target');
+    report({label:`${tool} 로그인 창 준비`});
     const script=await linuxPath(path.join(assets,'linux/login.sh'));
-    await helper('launch',{config,script,arguments:[tool]}); await inspect(); return snapshot();
+    await helper('launch',{config,script,arguments:[tool]}); await inspect();if(!inspection?.linux?.auth[tool]){report({label:`${tool} 로그인이 확인되지 않았습니다. 로그인 창에서 인증을 완료하세요.`});operation.finish('waiting');} return snapshot();
   }));
-  ipcMain.handle('shutdown',()=>guarded(async()=>{if(await confirm('WSL을 다시 시작할까요?','실행 중인 모든 WSL 작업이 종료됩니다. 작업을 저장하세요.')){await helper('shutdown');phase='configure';await inspect();}return snapshot();}));
-  ipcMain.handle('reboot',()=>guarded(async()=>{if(await confirm('Windows를 재부팅할까요?','30초 후 재부팅합니다. 작업을 저장하고, 부팅 후 앱을 다시 열어 주세요.'))await helper('reboot');}));
+  ipcMain.handle('shutdown',()=>guarded('WSL 재시작',async()=>{if(await confirm('WSL을 다시 시작할까요?','실행 중인 모든 WSL 작업이 종료됩니다. 작업을 저장하세요.')){await helper('shutdown');phase='configure';await inspect();}return snapshot();}));
+  ipcMain.handle('reboot',()=>guarded('Windows 재부팅',async()=>{if(await confirm('Windows를 재부팅할까요?','30초 후 재부팅합니다. 작업을 저장하고, 부팅 후 앱을 다시 열어 주세요.'))await helper('reboot');}));
   ipcMain.handle('logs',async()=>{await shell.openPath(stateDir);});
   await window.loadFile(path.join(__dirname,'../dist/index.html'));
 }

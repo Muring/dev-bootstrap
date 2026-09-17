@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { Config, Item, Snapshot, CONTENT_GROUPS, defaults, recommended, toggle } from '../electron/model';
 import '@fontsource-variable/noto-sans-kr';
 import './style.css';
+import { Select } from './Select';
+import { ProgressPanel } from './ProgressPanel';
 import { configurationKey, workflowAccess } from '../electron/workflow';
 
 interface Bridge {
@@ -47,7 +49,7 @@ function App(){
   const authTools=['gh','claude','codex'].filter(t=>config.selected.includes(t));
   const authPending=authTools.filter(t=>!inspection?.linux?.auth[t]);
   function update<K extends keyof Config>(key:K,value:Config[K]){setConfig({...config!,[key]:value});}
-  async function action(work:()=>Promise<unknown>){setError('');setNotice('');setWorking(true);try{await work();setSnapshot(await api.snapshot());}catch(e){setError(String(e).replace(/^Error: /,''));}finally{setWorking(false);}}
+  async function action(work:()=>Promise<unknown>){setError('');setNotice('');setSnapshot(previous=>previous?{...previous,operation:undefined}:previous);setWorking(true);try{await work();setSnapshot(await api.snapshot());}catch(e){setError(String(e).replace(/^Error: /,''));}finally{setWorking(false);}}
   async function save(){const state=await api.save(config!);setConfig(state.config);return state;}
   async function preview(){await save();const state=await api.previewContent();setSnapshot(state);setConfig(state.config);return state;}
   const contentSelected=config.selected.some(id=>CONTENT_GROUPS.includes(id));
@@ -64,8 +66,8 @@ function App(){
     update('selected',next);
   }
   return <div className="layout">
-    <aside><div className="brand"><span className="brand-icon">↗</span> Dev Bootstrap</div><p className="aside-caption">새 PC, 익숙한 개발환경.</p><nav>{pages.map((name,index)=><button key={name} className={visiblePage===index?'active':''} disabled={busy||!access[index]} title={!access[index]?'앞 단계의 필수 작업을 완료하세요.':undefined} onClick={()=>navigate(index)}><span>{index===6?'↻':index+1}</span>{name}</button>)}</nav><div className="aside-bottom">WINDOWS + UBUNTU<br/><small>MuRing · 설치 마법사 0.1.3</small></div></aside>
-    <main><header><div className="eyebrow">{visiblePage===6?'유지 관리':`STEP ${visiblePage+1} / 6`}</div><h1>{pages[visiblePage]}</h1><p>{['현재 PC 상태를 확인하고 사용할 Ubuntu를 정합니다.','필요한 도구만 선택하세요. 권장 항목도 자유롭게 바꿀 수 있습니다.','설치 전에 변경할 내용을 확인하세요.','실행 터미널의 안내에 따라 진행하세요. 완료한 단계는 실제 상태를 다시 확인합니다.','도구 설치와 계정 연결은 별도입니다. 필요한 계정에 로그인하세요.','선택한 항목과 계정 연결 상태를 확인하세요.','개발 도구를 재설치하지 않고 공용 명령과 스킬만 업데이트합니다.'][visiblePage]}</p></header><div className="page-content" key={visiblePage} tabIndex={0} aria-label="단계 본문">
+    <aside><div className="brand"><span className="brand-icon">↗</span> Dev Bootstrap</div><p className="aside-caption">새 PC, 익숙한 개발환경.</p><nav>{pages.map((name,index)=><button key={name} className={visiblePage===index?'active':''} disabled={busy||!access[index]} title={!access[index]?'앞 단계의 필수 작업을 완료하세요.':undefined} onClick={()=>navigate(index)}><span>{index===6?'↻':index+1}</span>{name}</button>)}</nav><div className="aside-bottom">WINDOWS + UBUNTU<br/><small>MuRing · 설치 마법사 0.1.4</small></div></aside>
+    <main><header><div className="eyebrow">{visiblePage===6?'유지 관리':`STEP ${visiblePage+1} / 6`}</div><h1>{pages[visiblePage]}</h1><p>{['현재 PC 상태를 확인하고 사용할 Ubuntu를 정합니다.','필요한 도구만 선택하세요. 권장 항목도 자유롭게 바꿀 수 있습니다.','설치 전에 변경할 내용을 확인하세요.','실행 터미널의 안내에 따라 진행하세요. 완료한 단계는 실제 상태를 다시 확인합니다.','도구 설치와 계정 연결은 별도입니다. 필요한 계정에 로그인하세요.','선택한 항목과 계정 연결 상태를 확인하세요.','개발 도구를 재설치하지 않고 공용 명령과 스킬만 업데이트합니다.'][visiblePage]}</p></header><ProgressPanel operation={snapshot.operation} busy={busy}/><div className="page-content" key={visiblePage} tabIndex={0} aria-label="단계 본문">
     {error&&<div role="alert" className="banner error">{error}</div>}{notice&&<div role="status" className="banner">{notice}</div>}
     {snapshot.phase==='reboot'&&<div className="banner">WSL 준비 후 Windows 재부팅이 필요합니다. 다시 앱을 열면 이어서 진행합니다. <button disabled={busy} onClick={()=>action(()=>api.reboot())}>재부팅</button></div>}
     {snapshot.phase==='wsl-restart'&&<div className="banner">Ubuntu 사용자 설정 반영을 위해 WSL 재시작이 필요합니다. <button disabled={busy} onClick={()=>action(()=>api.shutdown())}>WSL 재시작</button></div>}
@@ -77,10 +79,10 @@ function App(){
       </>}
       </section>
       <section className="card"><h2>Ubuntu와 개발 계정</h2>
-      <label className="field">배포판<select disabled={busy} value={config.distro} onChange={e=>{setConfig({...config,distro:e.target.value,installLocation:inspection?.distros.find(i=>i.name===e.target.value)?.location||''});}}>{Array.from(new Set(['Ubuntu',...(inspection?.distros.map(i=>i.name)||[])])).map(name=><option key={name}>{name}</option>)}</select></label>
+      <Select label="배포판" disabled={busy} value={config.distro} options={Array.from(new Set(['Ubuntu',...(inspection?.distros.map(i=>i.name)||[])])).map(name=>({value:name,label:name}))} onChange={value=>setConfig({...config,distro:value,installLocation:inspection?.distros.find(i=>i.name===value)?.location||''})}/>
       {field('user','Ubuntu 사용자명','muring')}
       {inspection?.linux&&<p className="muted">확인된 계정: {inspection.linux.users.join(', ')} · 기존 .zshrc {inspection.linux.zshrc?'있음 — 보존 권장':'없음'}</p>}
-      {!existing&&<label className="field">저장 위치 선택<select disabled={busy} value={inspection?.drives.some(d=>config.installLocation===`${d.root}WSL\\Ubuntu`)?config.installLocation:config.installLocation?'custom':''} onChange={e=>{if(e.target.value==='custom')update('installLocation','C:\\WSL\\Ubuntu');else update('installLocation',e.target.value);}}><option value="">Windows 기본 위치</option>{inspection?.drives.map(d=><option key={d.root} value={`${d.root}WSL\\Ubuntu`}>{d.root}WSL\Ubuntu · 여유 {d.freeGB} GB</option>)}<option value="custom">직접 입력</option></select></label>}
+      {!existing&&<Select label="저장 위치 선택" disabled={busy} value={inspection?.drives.some(d=>config.installLocation===`${d.root}WSL\\Ubuntu`)?config.installLocation:config.installLocation?'custom':''} options={[{value:'',label:'Windows 기본 위치'},...(inspection?.drives||[]).map(d=>({value:`${d.root}WSL\\Ubuntu`,label:`${d.root}WSL\\Ubuntu · 여유 ${d.freeGB} GB`})),{value:'custom',label:'직접 입력'}]} onChange={value=>update('installLocation',value==='custom'?'C:\\WSL\\Ubuntu':value)}/>}
       {field('installLocation',existing?'기존 Ubuntu 위치 · 자동 이동하지 않음':'Ubuntu 가상 디스크 위치','비워 두면 Windows 기본 위치',!!existing)}
       {!existing&&<p className="muted">새 계정은 개발용 WSL에 비밀번호 없는 sudo 권한으로 생성합니다.</p>}
       <div className="actions"><button disabled={busy||!inspection?.supported||!inspection.wslReady} onClick={()=>action(async()=>{await save();await api.install();const state=await api.snapshot();setConfig(state.config);setNotice('Ubuntu 준비를 확인했습니다. 설치 구성을 선택하세요.');})}>{existing?'기존 Ubuntu 확인':'Ubuntu 설치'}</button></div></section>

@@ -97,3 +97,33 @@ test('editing the inspected account locks configuration and updates',async({page
   await expect(page.getByRole('button',{name:'설치 구성 선택 →'})).toBeDisabled();
   await expect(page.locator('nav').getByRole('button',{name:'커맨드 · 스킬 업데이트',exact:false})).toBeDisabled();
 });
+
+test('long tasks show live stages, real counts, elapsed time and failure history',async({page})=>{
+ await page.evaluate(()=>{const w=window as any;w.bootstrap.inspect=()=>new Promise((resolve,reject)=>{const state=w.testState;state.busy=true;state.operation={title:'환경 확인',status:'running',startedAt:Date.now()-3000,current:{label:'Codex 로그인 상태 확인',completed:2,total:13,unit:'items'},steps:[{label:'Windows 검사',time:Date.now(),status:'completed'},{label:'Codex 로그인 상태 확인',time:Date.now(),status:'running'}]};w.failInspection=()=>{state.busy=false;state.operation.status='failed';state.operation.endedAt=Date.now();state.operation.steps[1].status='failed';reject(Error('검사 연결 실패'));};});});
+ await page.getByRole('button',{name:'환경 확인 / 새로고침'}).click();
+ const panel=page.getByRole('region',{name:'작업 진행 상황'});
+ await expect(panel.getByText('Codex 로그인 상태 확인',{exact:true})).toBeVisible();
+ await expect(panel.getByText('2 / 13 항목 처리',{exact:false})).toBeVisible();
+ await panel.getByText('진행 과정 2개').click();
+ await expect(panel.getByRole('listitem').filter({hasText:'Windows 검사'})).toBeVisible();
+ await page.screenshot({path:'test-results/progress.png'});
+ await page.evaluate(()=>(window as any).failInspection());
+ await expect(page.getByRole('alert')).toContainText('검사 연결 실패');
+ await expect(panel).toHaveClass(/failed/);
+});
+test('dropdown lists are styled, keyboard accessible and close on Escape/outside',async({page})=>{
+ await page.evaluate(()=>{(window as any).testState.inspection.distros.push({name:'Ubuntu-Test',version:2,location:'D:\\Test'});});
+ await page.waitForTimeout(1100);
+ const distro=page.getByRole('combobox',{name:'배포판'});
+ await distro.click();await expect(page.getByRole('listbox')).toBeVisible();
+ await expect(page.getByRole('option',{name:'Ubuntu',exact:true})).toHaveAttribute('aria-selected','true');
+ await page.screenshot({path:'test-results/dropdown.png'});
+ await distro.press('ArrowDown');await distro.press('Enter');await expect(distro).toContainText('Ubuntu-Test');
+ await distro.click();await distro.press('Escape');await expect(page.getByRole('listbox')).toHaveCount(0);
+ await distro.click();await page.getByRole('heading',{name:'환경 확인',exact:true}).click();await expect(page.getByRole('listbox')).toHaveCount(0);
+ await expect(page.locator('select')).toHaveCount(0);
+ await page.evaluate(()=>{(window as any).testState.inspection.distros=[];});
+ const location=page.getByRole('combobox',{name:'저장 위치 선택'});
+ await expect(location).toBeVisible();await location.click();await location.press('End');await location.press('Enter');
+ await expect(page.getByLabel('Ubuntu 가상 디스크 위치',{exact:true})).toHaveValue('C:\\WSL\\Ubuntu');
+});

@@ -151,7 +151,8 @@ def verify_release(root, metadata):
 
 
 class ContentStore:
-    def __init__(self, home=None, codex_home=None, client=None):
+    def __init__(self, home=None, codex_home=None, client=None, progress=None):
+        self.progress = progress or (lambda **event: None)
         self.home = Path(home) if home else Path.home()
         self.root = self.home / '.local/share/dev-bootstrap/content'
         self.explicit_codex_home = bool(codex_home or os.environ.get('CODEX_HOME'))
@@ -166,7 +167,9 @@ class ContentStore:
         return state
 
     def preview(self, commit=''):
+        self.progress(label='GitHub 커밋과 커맨드·스킬 파일 목록 확인')
         meta = self.client.resolve(commit)
+        self.progress(label='현재 설치와 원격 파일 변경 비교')
         old = self.state()
         before = {f['path']: (f['sha'], f['mode']) for f in old.get('files', [])}
         after = {f['path']: (f['sha'], f['mode']) for f in meta['files']}
@@ -211,12 +214,14 @@ class ContentStore:
     def stage(self, meta):
         release = self.root / 'releases' / meta['commit']
         if release.exists():
+            self.progress(label='기존 다운로드 파일 검증')
             verify_release(release, meta)
             return release
         release.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='.download-', dir=release.parent) as temporary:
             staging = Path(temporary)
-            for item in meta['files']:
+            for index, item in enumerate(meta['files']):
+                self.progress(label='커맨드·스킬 다운로드 및 해시 검증', completed=index, total=len(meta['files']), unit='items')
                 content = self.client.blob(item)
                 # Also verify injected/download adapters, not just GitHub's implementation.
                 if len(content) != item['size'] or blob_hash(content) != item['sha']:
@@ -231,6 +236,7 @@ class ContentStore:
                 else:
                     path.write_bytes(content)
                     path.chmod(0o755 if item['mode'] == '100755' else 0o644)
+            self.progress(label='커맨드·스킬 다운로드 및 해시 검증', completed=len(meta['files']), total=len(meta['files']), unit='items')
             atomic_json(staging / '.release.json', meta)
             verify_release(staging, meta)
             staging.rename(release)
@@ -289,8 +295,10 @@ class ContentStore:
     def apply(self, commit, groups):
         if not SHA.fullmatch(commit) or not groups or any(group not in GROUPS for group in groups):
             raise ValueError('검토한 커밋 SHA와 설치 대상이 필요합니다.')
+        self.progress(label='업데이트 잠금 및 이전 작업 복구 확인')
         with self.locked():
             old = self.state()
+            self.progress(label='적용할 커밋과 기존 경로 충돌 확인')
             if old.get('commit') == commit:
                 meta = {key: old[key] for key in ('version', 'repository', 'commit', 'message', 'date', 'files', 'commands', 'skills')}
             else:
@@ -317,6 +325,7 @@ class ContentStore:
             if old.get('commit') == commit and not changes and before == str(release):
                 return old
             backup = self.root / 'backups' / str(time.time_ns())
+            self.progress(label='이전 콘텐츠와 연결 백업')
             backup.mkdir(parents=True)
             if old and current.exists():
                 shutil.copytree(current.resolve(), backup / 'content', symlinks=True)
@@ -330,6 +339,7 @@ class ContentStore:
             atomic_json(backup / 'transaction.json', transaction)
             atomic_json(self.root / 'pending.json', transaction)
             try:
+                self.progress(label='콘텐츠 적용 및 Claude·Codex 연결 검증')
                 for entry in changes:
                     self.link(entry['path'], entry['after'])
                 new = {**meta, 'groups': all_groups, 'links': desired, 'backup': str(backup), 'codexHome': str(self.codex_home)}
@@ -342,5 +352,6 @@ class ContentStore:
                 (self.root / 'pending.json').unlink()
                 return new
             except BaseException:
+                self.progress(label='실패한 업데이트의 이전 연결 복구')
                 self.recover()
                 raise
