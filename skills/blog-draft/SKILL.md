@@ -127,6 +127,25 @@ status: "draft"
 `date` 는 위 Context 의 오늘(KST) 날짜다.
 파일은 **스크래치패드에 `<slug>.mdx`** 로 쓴다(파일명이 곧 slug 다).
 
+## 4-1. 썸네일 — Codex 에서만
+
+Claude Code 에는 이미지 생성 도구가 없다. Claude 에서 실행 중이면 이 절을 건너뛰고 6번 보고에
+"썸네일은 Codex 에서 `$blog-draft` 로 생성" 한 줄을 남긴다. Codex 에서는 등록 전에 다음을 한다.
+
+1. `$MUBLOG/output/imagegen/blog-development-thumbnails/` 를 연다. `manifest.json` 과
+   `blog-development-8-prompt.json` 이 시리즈 스타일 프롬프트의 원본이고, 직전 편 `blog-development-<n-1>.png` 가
+   스타일 참조 이미지다. 프롬프트의 스타일 문장(Warm ivory·navy·cobalt·teal·orange, paper texture, 16:9, no text)은
+   그대로 두고 **구성 부분만 이번 글 주제로** 바꾼다.
+2. `image_gen` 으로 한 장 만들고 `<slug>.png` 와 `<slug>-prompt.json`(사용한 프롬프트·참조 파일)을 같은 폴더에 둔다.
+3. 올리기 전에 사용자에게 이미지를 보여 주고 확인을 받는다. 마음에 안 들면 프롬프트만 바꿔 다시 만든다.
+4. 확인되면 `publish.mjs` 의 업로드 방식대로 올린다 — 경로는 `thumbnails/<slug>/illustration-<sha256 앞 12자리>.png`,
+   `upsert: false`, 올린 뒤 공개 URL 을 받아와 바이트가 같은지 확인. **`publish.mjs` 는 1~7편 slug 가 박혀 있는
+   일회성 스크립트**라 그대로 돌리지 말고, 업로드 부분만 이번 slug 로 쓴다. 새 초안은 아직 DB 에 없으므로 posts
+   UPDATE 는 하지 않는다.
+5. 받은 공개 URL 을 프론트매터 `thumbnail:` 에 넣는다. 그다음 5번 등록으로 간다.
+
+비밀값(`SUPABASE_SECRET_KEY`, `DATABASE_URL`)은 `.env.local` 에서 읽기만 하고 출력·복사하지 않는다.
+
 ## 5. 등록
 
 ```bash
