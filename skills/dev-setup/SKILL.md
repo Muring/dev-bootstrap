@@ -8,7 +8,7 @@ description: Windows 또는 Ubuntu에서 선택 가능한 개발환경 설치를
 현재 환경을 확인하고 README의 앱 또는 CLI 경로를 사용한다.
 
 - Windows에서는 설치 마법사를 우선한다. 기존 Ubuntu를 이동·삭제하지 않는다.
-- Ubuntu에서는 이 스킬이 포함된 설치 자산의 `linux/setup.sh`를 사용한다.
+- Ubuntu에서는 별도로 설치된 자산의 `linux/setup.sh`를 사용한다. 콘텐츠 디렉터리에는 설치 코드가 없다.
   앱 설치의 자산은 `~/.local/share/dev-bootstrap/runtime`, CLI checkout은 보통 `~/dev/dev-bootstrap`이다.
 - 기존 자산이나 checkout을 자동 pull하지 않는다. Git 작업은 사용자가 요청한 범위에서만 한다.
 
