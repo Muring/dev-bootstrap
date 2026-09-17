@@ -35,7 +35,7 @@ check() {
       origin="$(git -C "$MURING_KB_DIR" remote get-url origin)"
       [[ "$origin" = "$MURING_KB_REPO" || "$MURING_KB_REPO|$origin" = 'https://github.com/Muring/muring-kb.git|git@github.com:Muring/muring-kb.git' ]]
       test -f "$MURING_KB_DIR/scripts/setup.py"
-      python3 "$MURING_KB_DIR/scripts/setup.py" --check
+      python3 "$MURING_KB_DIR/scripts/setup.py" --client all --check
       test "$HOME/.local/bin/mkb" -ef "$MURING_KB_DIR/scripts/kb.py"
       "$HOME/.local/bin/mkb" --version ;;
     orca)

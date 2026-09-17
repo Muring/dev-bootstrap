@@ -44,9 +44,9 @@ fi
 for file in START-HERE.md scripts/setup.py scripts/kb.py; do
   [ -f "$KB_DIR/$file" ] || fail "KB 설치 파일 없음: $file. checkout 버전을 확인한다."
 done
-python3 "$KB_DIR/scripts/setup.py"
+python3 "$KB_DIR/scripts/setup.py" --client all
 python3 "$KB_DIR/scripts/kb.py" install
-python3 "$KB_DIR/scripts/setup.py" --check
+python3 "$KB_DIR/scripts/setup.py" --client all --check
 [ "$HOME/.local/bin/mkb" -ef "$KB_DIR/scripts/kb.py" ] || fail 'mkb 연결 대상이 다르다.'
 "$HOME/.local/bin/mkb" --version
 printf 'MuRing-KB 설치·등록 확인 완료. 새 Codex 세션을 시작한다.\n'

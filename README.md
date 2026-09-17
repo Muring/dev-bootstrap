@@ -188,7 +188,7 @@ MuRing 기본 KB는 `https://github.com/Muring/muring-kb.git`이며 해당 비�
 대상 KB는 `START-HERE.md`, `scripts/setup.py`, `scripts/kb.py`를 제공하는 호환 저장소여야 합니다.
 
 인증 후 **KB 연결 재시도**를 누릅니다. 기존 KB checkout은 자동 pull하지 않습니다.
-연결이 끝나면 새 Codex 세션을 시작하세요.
+연결은 Codex 전역 지침(`~/.codex/AGENTS.md`)에 KB를 등록하고 Claude Code 전역 지침(`~/.claude/CLAUDE.md`)이 그 파일을 가져오도록 설정합니다. 끝나면 각 도구의 새 세션을 시작하세요.
 
 ### Claude / Codex
 
