@@ -99,7 +99,11 @@ ls "$MUBLOG/backup/posts"      # 기존 slug (중복 회피)
   대신 "여기에 이 스크린샷이 있으면 좋겠다" 를 **마지막 보고에만** 목록으로 적는다.
 - **태그는 기존 어휘에서 고른다**(1에서 뽑은 목록). 새 태그는 정말 필요할 때만, 최대 3개.
   `etc` 는 항상 마지막.
-- **썸네일은 `$MUBLOG/public/thumbnails` 에 실제로 있는 파일만.** 마땅한 게 없으면 줄을 뺀다.
+- **썸네일은 실제로 있는 것만.** `$MUBLOG/public/thumbnails` 의 파일이거나, 이미 올라간 storage URL
+  (`backup/posts/*.mdx` 의 `thumbnail:` 값 참고). 마땅한 게 없으면 줄을 빼고 마지막 보고에 적는다.
+  블로그 개발기 시리즈 일러스트는 Codex 의 `image_gen` 으로 만든다 — 스타일 프롬프트와 업로드 절차는
+  `$MUBLOG/output/imagegen/blog-development-thumbnails/` 의 `manifest.json`·`publish.mjs` 가 원본이다.
+  Claude Code 에는 이미지 생성 도구가 없으므로 생성은 Codex 에서 하고, 여기서는 URL 만 쓴다.
 - **slug 는 소문자·숫자·하이픈만.** 기존 slug 와 겹치지 않게 한다.
 - 회사·고객사 이름, 비밀값, 사내 URL, 실제 계정명을 본문에 넣지 않는다.
 
