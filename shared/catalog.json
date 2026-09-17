@@ -209,8 +209,8 @@
   },
   {
     "id": "claude-skill",
-    "title": "개발환경 스킬",
-    "description": "Claude에 dev-setup 스킬을 연결합니다.",
+    "title": "Claude 스킬",
+    "description": "GitHub에서 받은 공용 스킬을 Claude에 연결합니다.",
     "depends": [
       "claude"
     ],
@@ -224,7 +224,7 @@
   {
     "id": "claude-commands",
     "title": "Claude 커맨드",
-    "description": "/commit, /blog-draft 커맨드를 연결합니다.",
+    "description": "GitHub의 공용 명령을 Claude /명령 호출로 연결합니다.",
     "depends": [
       "claude"
     ],
@@ -233,6 +233,20 @@
       "common": false
     },
     "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "codex-skills",
+    "title": "Codex 공용 스킬",
+    "description": "Claude와 같은 공용 명령 원본을 Codex $스킬 호출로 연결합니다.",
+    "depends": [
+      "codex"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "muring",
     "required": false
   },
   {

@@ -28,3 +28,9 @@ test('configuration rejects missing dependencies, credentials and injection shap
   for(const change of [{selected:['base','kb']},{user:'root'},{user:'x;whoami'},{distro:'Ubuntu\ncmd'}, {installLocation:'D:\\'}, {kbRepo:'https://token@github.com/Muring/kb'}, {timezone:'../../etc/passwd'}, {extra:true}])assert.throws(()=>validate({...c,...change},catalog));
   assert.equal(validate({...c,installLocation:'D:\\Linux Data\\Ubuntu',gitName:'홍 길동 " $()'},catalog).gitName,'홍 길동 " $()');
 });
+test('legacy configuration defaults content pin and rejects malformed commits',()=>{
+  const {contentCommit,...legacy}=defaults(catalog);
+  assert.equal(validate(legacy,catalog).contentCommit,'');
+  assert.equal(validate({...legacy,contentCommit:'a'.repeat(40)},catalog).contentCommit,'a'.repeat(40));
+  for(const value of ['main','abc','../main','A'.repeat(40),42])assert.throws(()=>validate({...legacy,contentCommit:value},catalog));
+});

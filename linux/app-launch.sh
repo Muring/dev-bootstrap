@@ -16,7 +16,7 @@ runtime="$HOME/.local/share/dev-bootstrap/runtime"
 mkdir -p "$runtime"
 exec 9>"$HOME/.local/share/dev-bootstrap/launch.lock"
 flock -n 9 || { echo '다른 설치가 실행 중입니다.'; exit 1; }
-cp -R "$source_dir/linux" "$source_dir/shared" "$source_dir/skills" "$source_dir/commands" "$source_dir/windows" "$runtime/"
+cp -R "$source_dir/linux" "$source_dir/shared" "$source_dir/windows" "$runtime/"
 args=(--config "$config" --events "$events")
 if [[ -n "$step" ]]; then args+=(--step "$step"); fi
 python3 "$runtime/linux/runner.py" "${args[@]}"

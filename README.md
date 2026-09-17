@@ -6,22 +6,22 @@ Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마�
 
 ## 앱으로 시작하기
 
-1. [DevBootstrap-0.1.0-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.0-x64.exe/DevBootstrap-0.1.0-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
-2. 다운로드한 `DevBootstrap-0.1.0-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
+1. [DevBootstrap-0.1.1-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.1-x64.exe/DevBootstrap-0.1.1-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
+2. 다운로드한 `DevBootstrap-0.1.1-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
 3. **환경 확인**을 누릅니다. WSL, 기존 Ubuntu, 드라이브 여유 공간과 Orca 상태를 검사합니다.
 4. WSL이 없으면 **WSL 준비 / 업데이트**를 누릅니다. 이 단계에서만 Windows 관리자 권한을 요청합니다.
 5. 재부팅이 필요하면 작업을 저장하고 재부팅한 다음 같은 앱을 다시 엽니다.
 6. Ubuntu 저장 위치와 Linux 사용자명을 선택하고 **Ubuntu 설치**를 누릅니다. 기존 Ubuntu라면 현재 위치와 개발 계정을 사용합니다.
 7. **설치 구성**에서 원하는 항목을 선택합니다. `Recommended`는 권장 표시이며 선택을 해제할 수 있습니다.
-8. **변경 내용 확인**에서 설치 대상과 설정 변경을 확인하고 설치를 시작합니다.
+8. **변경 내용 확인**에서 설치 대상, GitHub 커맨드·스킬의 커밋과 변경 파일을 확인하고 설치를 시작합니다.
 9. 별도 Ubuntu 실행 창의 안내를 따릅니다. 기존 계정의 sudo 비밀번호가 필요하면 그 창에 입력합니다.
 10. 앱의 **로그인 · 연동**에서 GitHub·Claude·Codex 로그인과 KB·Orca 연결을 마칩니다.
 11. **완료** 화면에서 설치와 계정 연결 상태를 각각 확인합니다.
 
 **사용자 PC에 Git, Node, Python을 미리 설치하거나 이 저장소를 clone할 필요가 없습니다.**
-실행 파일에 앱 런타임과 설치 스크립트가 들어 있습니다. 개발 도구 다운로드에는 인터넷이 필요합니다.
-[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/DevBootstrap-0.1.0-x64.exe)에서 변경 내용과
-[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.0-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
+실행 파일에는 앱 런타임과 설치 스크립트가 들어 있습니다. 커맨드·스킬은 설치 시 GitHub에서 별도로 받습니다. 다운로드에는 인터넷이 필요합니다.
+[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/DevBootstrap-0.1.1-x64.exe)에서 변경 내용과
+[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.1-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
 현재 버전은 서명되지 않은 **초기 검증판(Pre-release)**입니다. 신규 Windows 전체 설치 검증은 아직 남아 있습니다.
 GitHub의 `Source code (zip/tar.gz)`는 개발용 소스이며, 설치할 때는 `.exe` 파일을 받으세요.
 
@@ -41,6 +41,44 @@ Windows 저장 위치는 Ubuntu 가상 디스크의 위치이며, Ubuntu 내부 
 - 다음 버전 설치도 변경 내용 확인 화면을 거칩니다. 기존 Ubuntu나 개발환경을 먼저 삭제할 필요가 없습니다.
 - 개발자가 새 버전을 배포하는 절차는 [배포 가이드](docs/RELEASING.md)를 따릅니다.
 
+## 커맨드·스킬만 업데이트하기
+
+**기존 0.1.0 사용자는 0.1.1 EXE를 한 번 새로 받으세요.** 이후 커맨드·스킬 내용 변경에는 EXE 재다운로드가 필요 없습니다.
+
+1. Windows에서 앱을 열고 대상 Ubuntu와 Linux 계정을 확인합니다.
+2. **설치 구성**에서 Claude 스킬·Claude 커맨드·Codex 공용 스킬 중 사용할 항목을 선택합니다.
+3. 왼쪽 **커맨드 · 스킬 업데이트** → **업데이트 확인**을 누릅니다.
+4. GitHub `main`의 커밋, 명령 목록과 변경 파일을 확인한 뒤 **확인한 버전 적용**을 누릅니다.
+5. 새 Claude·Codex 세션에서 `/commit`, `$commit`처럼 호출합니다.
+
+이 작업은 sudo나 개발 도구 재설치 없이 실행됩니다. 확인 이후 main이 바뀌어도 확인한 커밋만 적용합니다.
+이미 이 설치기로 등록한 대상들은 같은 콘텐츠 버전을 함께 사용합니다. 선택 해제는 기존 연결의 삭제를 뜻하지 않습니다.
+최신 파일을 자동 적용하거나 앱 시작 때마다 다운로드하지 않습니다.
+
+- 공용 원본: `skills/<name>/SKILL.md` 일반 파일. `commands/<name>.md`는 해당 원본을 가리키는 상대 링크입니다.
+- Claude 커맨드: `~/.claude/commands`; Claude 스킬: `~/.claude/skills/<name>`.
+- Codex 스킬: `${CODEX_HOME:-~/.codex}/skills/<name>`. 별도 경로를 사용한다면 대상 Ubuntu의 실행 환경에 `CODEX_HOME`을 설정하세요. 저장한 경로는 다음 업데이트에서도 사용합니다.
+- 다운로드: `~/.local/share/dev-bootstrap/content/releases/<커밋>`; 적용 중인 원본: `content/current`.
+- 상태: `content/state.json`; 이전 콘텐츠와 연결 백업: `content/backups/<시간>/`.
+- 기존 0.1.0 앱의 runtime을 가리키는 알려진 링크는 백업 후 전환합니다.
+  다른 checkout의 링크나 직접 만든 파일·디렉터리는 덮어쓰지 않고 중단합니다. 표시된 경로의 내용을 확인하고 직접 보관·이동한 뒤 재시도하세요.
+- 다운로드·해시 검증 실패 시 기존 설치를 유지합니다. 적용 중 실패는 연결을 복구하며, 강제 종료 후에는 다음 적용 때 복구합니다.
+- 네트워크 또는 GitHub API 호출 한도 오류가 나면 잠시 후 다시 확인하세요. 현재 설치된 커맨드·스킬은 계속 사용할 수 있습니다.
+- 업데이트 기록: Windows `%LOCALAPPDATA%\dev-bootstrap\content-<시간>\result.json`.
+
+콘텐츠 수정자는 원본을 수정하고 검증한 뒤 GitHub에 commit/push하면 됩니다. 설치 UI·설치 코드·항목 구조 변경은 새 EXE 릴리스가 필요합니다.
+
+Ubuntu CLI로 콘텐츠만 적용하려면 최신 checkout에서 일반 계정으로 실행합니다:
+
+```bash
+python3 linux/content.py preview
+# 위 출력에서 확인한 40자리 commit 값을 사용
+python3 linux/content.py apply --commit <확인한-40자리-SHA> --group claude-commands --group claude-skill --group codex-skills
+```
+
+비대화형 전체 설치 JSON에서 콘텐츠 항목을 선택했다면 `"contentCommit": "<확인한-40자리-SHA>"`를 넣어야 합니다.
+대화형 설치와 앱은 변경 확인 단계에서 값을 채웁니다. 콘텐츠를 선택하지 않은 기존 구성에는 필요 없습니다.
+
 ## 기본 구성과 Recommended
 
 | 항목 | MuRing 구성 | 공통 구성 |
@@ -55,6 +93,7 @@ Windows 저장 위치는 Ubuntu 가상 디스크의 위치이며, Ubuntu 내부 
 | Git 작성자·기본 브랜치·Windows GCM | 각각 선택 해제 | 각각 선택 해제 |
 | 시간대 변경 | Asia/Seoul 선택됨 | 기존 값 유지 |
 | Claude 개인 설정·스킬·커맨드 | 각각 선택됨 | 선택 해제 |
+| Codex 공용 스킬 | 선택됨 · Recommended | 선택 해제 |
 | Claude 권한 경고 생략 설정 | 선택 해제 | 선택 해제 |
 | 개인 KB·Orca 스킬 | 각각 선택됨 · Recommended | 선택 해제 |
 | Orca 1.4.202 패치 | 선택 해제 | 선택 해제 |
@@ -79,8 +118,8 @@ Orca 패치는 검증된 파일이 있을 때만 선택 가능합니다.
 - 기존 Claude 스킬·커맨드 경로가 일반 디렉터리라면 보존하고 충돌을 보고합니다.
 
 앱 설치 자산은 Ubuntu의 `~/.local/share/dev-bootstrap/runtime`에 복사합니다.
-스킬·커맨드 링크는 이 위치를 가리키므로 Windows 실행 파일을 옮겨도 유지됩니다.
-앱에서 설치할 때 저장소의 최신 코드를 자동 pull하지 않습니다.
+커맨드·스킬은 별도의 `~/.local/share/dev-bootstrap/content`에 저장하므로 EXE를 옮겨도 유지됩니다.
+설치 스크립트는 EXE에 포함된 버전을 사용하고, 콘텐츠만 GitHub에서 가져옵니다.
 
 ## 로그인과 수동 작업
 
@@ -224,7 +263,7 @@ npm test
 npm run dist:win
 ```
 
-Windows 포터블 산출물: `app/release/DevBootstrap-0.1.0-x64.exe`
+Windows 포터블 산출물: `app/release/DevBootstrap-0.1.1-x64.exe`
 
 Windows에서 개발용 앱을 실행하려면 `npm start`를 사용합니다.
 Linux에서 실행하면 화면 개발만 가능하며 Windows 설치 기능은 차단됩니다.
@@ -248,6 +287,7 @@ WSL 시스템 준비 helper에만 사용하고 Ubuntu·사용자 설정은 원�
 시스템을 설치하지 않는 테스트:
 
 ```bash
+python3 tests/content-update.py
 python3 tests/setup-order.py
 python3 tests/shell-config.py
 python3 tests/setup-kb.py /path/to/muring-kb
@@ -271,7 +311,8 @@ powershell -ExecutionPolicy Bypass -File tests\orca-wsl-rename.ps1 -OriginalArch
 
 현재 확인한 범위: 구성·의존성 테스트, 임시 홈의 셸/Git 설정 보존, KB 회귀 테스트,
 브라우저 UI 테스트, 실제 Windows helper 및 WSL 인자 전달, 패키징된 Windows 앱의
-preload·IPC·읽기 전용 WSL 검사와 구성 화면입니다.
+preload·IPC·읽기 전용 WSL 검사, 실제 GitHub 콘텐츠 미리보기와 구성 화면입니다.
+콘텐츠 테스트는 임시 홈에서 버전 고정·백업·충돌 보존·실패 복구를 검증하고, 실제 GitHub 다운로드와 Claude/Codex 원본 일치도 확인했습니다.
 Orca 패치 회귀 테스트는 검증된 원본 app.asar를 확보하지 못해 이번 검증에서 실행하지 않았습니다.
 
 **신규 Windows VM에서 WSL 설치 → 재부팅 → Ubuntu 생성 → 전체 설치의 실환경 검증은 아직 완료하지 않았습니다.**

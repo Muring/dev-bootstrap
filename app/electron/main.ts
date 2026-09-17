@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { Config, defaults, Inspection, InstallEvent, Item, Snapshot, validate } from './model';
+import { Config, ContentPreview, CONTENT_GROUPS, defaults, Inspection, InstallEvent, Item, Snapshot, validate } from './model';
 
 let window: BrowserWindow;
 let catalog: Item[];
@@ -14,6 +14,12 @@ let phase = 'inspect';
 let currentEvents = '';
 let stateDir: string;
 let assets: string;
+let contentPreview: ContentPreview | undefined;
+let contentTarget = '';
+
+function contentKey(value: Config) {
+  return JSON.stringify([value.distro,value.user,value.selected.filter(id=>CONTENT_GROUPS.includes(id)).sort()]);
+}
 
 async function atomic(file: string, value: unknown) {
   const temp = file + '.tmp';
@@ -63,7 +69,7 @@ async function appendEvent(step: string, status: string, message: string) {
   if (!currentEvents) currentEvents = path.join(stateDir, `run-${Date.now()}.jsonl`);
   await fs.appendFile(currentEvents, JSON.stringify({version:1, step,status,message,time:Date.now()/1000})+'\n');
 }
-async function snapshot(): Promise<Snapshot> {return {config, inspection, events:await events(), busy, phase, logPath:currentEvents.replace(/\.jsonl$/,'.log')};}
+async function snapshot(): Promise<Snapshot> {return {config, inspection, contentPreview, events:await events(), busy, phase, logPath:currentEvents.replace(/\.jsonl$/,'.log')};}
 async function inspect() {
   if (process.platform !== 'win32') {
     inspection = {supported:false,wslReady:false,locationSupported:false,distros:[],drives:[],orcaInstalled:false,patchSupported:false,patchApplied:false,error:'Windows 11 x64에서 실행하세요. 이 화면은 개발용 미리보기입니다.'};
@@ -103,9 +109,42 @@ async function guarded(action: () => Promise<unknown>) {
 async function confirm(message: string, detail: string) {
   return (await dialog.showMessageBox(window,{type:'question',buttons:['취소','진행'],defaultId:0,cancelId:0,message,detail})).response === 1;
 }
+async function previewContent() {
+  await inspect();
+  if (inspection?.linux?.osId !== 'ubuntu') throw Error('Ubuntu 환경 확인을 먼저 완료하세요.');
+  const script=await linuxPath(path.join(assets,'linux/content.py'));
+  const result=JSON.parse(await capture('wsl.exe',['-d',config.distro,'-u',config.user,'--exec','python3',script,'preview'],120000)) as ContentPreview;
+  if(!/^[0-9a-f]{40}$/.test(result.commit)) throw Error('GitHub 커밋 확인에 실패했습니다.');
+  contentPreview=result; contentTarget=contentKey(config);
+  config.contentCommit=result.commit;
+  await persist();
+  return snapshot();
+}
+async function updateContent() {
+  const groups=config.selected.filter(id=>CONTENT_GROUPS.includes(id));
+  if (!groups.length) throw Error('설치 구성에서 커맨드·스킬 대상을 선택하세요.');
+  if (!contentPreview || contentTarget!==contentKey(config) || config.contentCommit!==contentPreview.commit) throw Error('적용할 버전과 변경 내용을 먼저 확인하세요.');
+  const script=await linuxPath(path.join(assets,'linux/content.py'));
+  const directory=path.join(stateDir,`content-${Date.now()}`);
+  await fs.mkdir(directory,{recursive:true});
+  // Keep installation results in their existing log; this update has its own audit log.
+  const log=path.join(directory,'result.json');
+  try {
+    const result=JSON.parse(await capture('wsl.exe',['-d',config.distro,'-u',config.user,'--exec','python3',script,'apply','--commit',contentPreview.commit,...groups.flatMap(group=>['--group',group])],300000));
+    await atomic(log,{status:'completed',...result});
+    for(const group of groups)await appendEvent(group,'completed',`GitHub ${result.commit.slice(0,12)} 적용 완료`);
+    contentPreview={...contentPreview,installedCommit:result.commit,changes:[]};
+    if(inspection?.linux)inspection.linux.contentCommit=result.commit;
+    return snapshot();
+  } catch(error) {
+    await atomic(log,{status:'failed',message:String(error)});
+    throw error;
+  }
+}
 async function run(step?: string) {
   config = validate(config,catalog);
   if (step && (!catalog.some(i=>i.id===step) || !config.selected.includes(step))) throw Error('선택된 설치 항목만 실행할 수 있습니다.');
+  if ((!step || CONTENT_GROUPS.includes(step)) && config.selected.some(id=>CONTENT_GROUPS.includes(id)) && !config.contentCommit) throw Error('변경 내용 확인 화면에서 커맨드·스킬 버전을 먼저 확인하세요.');
   await inspect();
   if (!inspection?.supported || !inspection.linux) throw Error('환경 확인과 Ubuntu 준비를 먼저 완료하세요.');
   if (inspection.linux.osId !== 'ubuntu') throw Error('이 설치기는 Ubuntu만 지원합니다.');
@@ -149,8 +188,10 @@ async function main() {
   window.on('close',event=>{if(busy){event.preventDefault(); void dialog.showMessageBox(window,{message:'설치가 실행 중입니다.',detail:'현재 단계 후 중지를 누르고 실행 터미널이 끝날 때까지 기다려 주세요.'});}});
   ipcMain.handle('snapshot',snapshot);
   ipcMain.handle('catalog',()=>catalog);
-  ipcMain.handle('save',async(_event,value)=>{if(busy)throw Error('설치 중에는 구성을 변경할 수 없습니다.'); const next=validate(value,catalog); if(JSON.stringify(config)!==JSON.stringify(next)) currentEvents=''; config=next; await persist(); return snapshot();});
+  ipcMain.handle('save',async(_event,value)=>{if(busy)throw Error('설치 중에는 구성을 변경할 수 없습니다.'); const next=validate(value,catalog); if(contentKey(config)!==contentKey(next)){contentPreview=undefined;next.contentCommit='';} if(config.distro!==next.distro||config.user!==next.user)inspection=undefined; if(JSON.stringify(config)!==JSON.stringify(next)) currentEvents=''; config=next; await persist(); return snapshot();});
   ipcMain.handle('inspect',()=>guarded(inspect));
+  ipcMain.handle('content-preview',()=>guarded(previewContent));
+  ipcMain.handle('content-update',()=>guarded(updateContent));
   ipcMain.handle('prepare',()=>guarded(async()=>{const result=await helper('prepare'); phase=result.reboot?'reboot':'inspect'; await inspect(); return {reboot:result.reboot};}));
   ipcMain.handle('install',()=>guarded(async()=>{
     config=validate(config,catalog);

@@ -4,6 +4,8 @@ contextBridge.exposeInMainWorld('bootstrap', {
   catalog: () => ipcRenderer.invoke('catalog'),
   save: (config: unknown) => ipcRenderer.invoke('save', config),
   inspect: () => ipcRenderer.invoke('inspect'),
+  previewContent: () => ipcRenderer.invoke('content-preview'),
+  updateContent: () => ipcRenderer.invoke('content-update'),
   prepare: () => ipcRenderer.invoke('prepare'),
   install: () => ipcRenderer.invoke('install'),
   run: (step?: string) => ipcRenderer.invoke('run', step),

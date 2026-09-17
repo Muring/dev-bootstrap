@@ -29,7 +29,7 @@ check() {
     git-branch) [[ "$(git config --global init.defaultBranch || true)" = main ]] ;;
     git-gcm) python3 "$ROOT/settings.py" check-gcm ;;
     timezone) [[ "$(cat /etc/timezone 2>/dev/null || true)" = "$TIMEZONE" ]] && [[ "$(readlink -f /etc/localtime)" = "$(readlink -f "/usr/share/zoneinfo/$TIMEZONE")" ]] ;;
-    claude-settings|claude-permissions|claude-skill|claude-commands) python3 "$ROOT/settings.py" "check-$ITEM" ;;
+    claude-settings|claude-permissions|claude-skill|claude-commands|codex-skills) python3 "$ROOT/settings.py" "check-$ITEM" ;;
     kb)
       test -d "$MURING_KB_DIR/.git"
       origin="$(git -C "$MURING_KB_DIR" remote get-url origin)"
@@ -70,7 +70,7 @@ apply() {
       done
       shell_config ;;
     shell-replace) python3 "$ROOT/settings.py" replace ;;
-    git-name|git-email|git-branch|git-gcm|claude-settings|claude-permissions|claude-skill|claude-commands) python3 "$ROOT/settings.py" "$ITEM" ;;
+    git-name|git-email|git-branch|git-gcm|claude-settings|claude-permissions|claude-skill|claude-commands|codex-skills) python3 "$ROOT/settings.py" "$ITEM" ;;
     timezone)
       test -f "/usr/share/zoneinfo/$TIMEZONE"
       sudo ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime

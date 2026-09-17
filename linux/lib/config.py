@@ -15,7 +15,7 @@ def defaults(profile='muring'):
                 selected=[i['id'] for i in CATALOG if i['defaults'][profile]],
                 distro='Ubuntu', user='', installLocation='', gitName='', gitEmail='',
                 timezone='Asia/Seoul', kbRepo='https://github.com/Muring/muring-kb.git',
-                kbDir='~/dev/muring-kb')
+                kbDir='~/dev/muring-kb', contentCommit='')
 
 
 def validate(raw):
@@ -39,6 +39,8 @@ def validate(raw):
     for item, field in [('git-name', 'gitName'), ('git-email', 'gitEmail')]:
         if item in selected and not config[field].strip():
             raise ValueError(f'{field} is required')
+    if config['contentCommit'] and not re.fullmatch(r'[0-9a-f]{40}', config['contentCommit']):
+        raise ValueError('contentCommit must be a full Git commit SHA')
     if not re.fullmatch(r'[A-Za-z0-9_+./-]+', config['timezone']) or '..' in config['timezone']:
         raise ValueError('Invalid timezone')
     if 'kb' in selected:

@@ -8,6 +8,7 @@ import shutil
 import time
 
 from lib.shell_config import configure, write_changed
+from lib.content import ContentStore, GROUPS
 
 ROOT = Path(__file__).resolve().parent
 HOME = Path.home()
@@ -26,6 +27,13 @@ def backup_git():
 
 
 def main():
+    if ITEM in GROUPS:
+        store = ContentStore()
+        if CHECK:
+            return store.check(ITEM, CONFIG['contentCommit'])
+        result = store.apply(CONFIG['contentCommit'], [ITEM])
+        print(f'커맨드·스킬 적용: {result["commit"]} / 백업: {result["backup"]}')
+        return True
     if ITEM in ('shell', 'theme', 'replace'):
         if not CHECK:
             selected = list(CONFIG['selected'])
@@ -74,19 +82,6 @@ def main():
         else:
             data['skipDangerousModePermissionPrompt'] = True
         write_changed(path, json.dumps(data, ensure_ascii=False, indent=2) + '\n')
-        return True
-    links = {'claude-skill': (HOME / '.claude/skills/dev-setup', ROOT.parent / 'skills/dev-setup'),
-             'claude-commands': (HOME / '.claude/commands', ROOT.parent / 'commands')}
-    if ITEM in links:
-        target, source = links[ITEM]
-        if CHECK:
-            return target.is_symlink() and target.resolve() == source.resolve() and source.exists()
-        if target.exists() and not target.is_symlink():
-            raise ValueError(f'기존 경로를 보존했습니다. 직접 확인하세요: {target}')
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if target.is_symlink():
-            target.unlink()
-        target.symlink_to(source, target_is_directory=True)
         return True
     raise ValueError('Unknown settings item')
 

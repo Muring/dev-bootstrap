@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import pwd
 import subprocess
+from lib.content import ContentStore
 
 
 def output(args):
@@ -22,6 +23,10 @@ def succeeds(args):
 
 
 home = Path.home()
+try:
+    content_commit = ContentStore().state().get('commit', '')
+except (ValueError, OSError):
+    content_commit = ''
 auth = {'gh': succeeds(['gh', 'auth', 'status', '--hostname', 'github.com']),
         'codex': succeeds(['codex', 'login', 'status'])}
 try:
@@ -30,7 +35,7 @@ try:
 except (OSError, ValueError, subprocess.TimeoutExpired):
     auth['claude'] = False
 os_id = next((line.split('=', 1)[1].strip('"') for line in Path('/etc/os-release').read_text().splitlines() if line.startswith('ID=')), '')
-print(json.dumps(dict(osId=os_id, users=[u.pw_name for u in pwd.getpwall() if 1000 <= u.pw_uid < 65534],
+print(json.dumps(dict(osId=os_id, contentCommit=content_commit, users=[u.pw_name for u in pwd.getpwall() if 1000 <= u.pw_uid < 65534],
                      user=pwd.getpwuid(__import__('os').getuid()).pw_name, zshrc=(home / '.zshrc').exists(),
                      gitName=output(['git', 'config', '--global', 'user.name']),
                      gitEmail=output(['git', 'config', '--global', 'user.email']),

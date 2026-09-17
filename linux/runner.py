@@ -10,6 +10,7 @@ import sys
 import time
 
 from lib.config import CATALOG, defaults, validate
+from lib.content import ContentStore, GROUPS
 
 ROOT = Path(__file__).resolve().parent
 
@@ -27,6 +28,7 @@ def environment(config):
                GIT_USER_NAME=config['gitName'], GIT_USER_EMAIL=config['gitEmail'],
                TIMEZONE=config['timezone'], MURING_KB_REPO=config['kbRepo'],
                MURING_KB_DIR=os.path.expanduser(config['kbDir']),
+               CONTENT_COMMIT=config['contentCommit'],
                COREPACK_ENABLE_DOWNLOAD_PROMPT='0')
     return env
 
@@ -132,6 +134,12 @@ def interactive():
                                ('timezone', 'timezone', '시간대'), ('kb', 'kbRepo', 'KB URL'), ('kb', 'kbDir', 'KB 위치')]:
         if item in config['selected']:
             config[field] = input(f'{label} [{config[field]}]: ').strip() or config[field]
+    if any(group in config['selected'] for group in GROUPS):
+        preview = ContentStore().preview()
+        config['contentCommit'] = preview['commit']
+        print(f'GitHub 커맨드·스킬: {preview["commit"]} — {preview["message"]}')
+        for change in preview['changes']:
+            print(f'  {change["status"]}: {change["path"]}')
     print(json.dumps(config, ensure_ascii=False, indent=2))
     if input('위 설정으로 설치하시겠습니까? [y/N]: ').strip().lower() != 'y':
         raise ValueError('설치를 취소했습니다.')
@@ -148,6 +156,8 @@ def main():
     if not args.config and not sys.stdin.isatty():
         parser.error('비대화형 실행에는 --config <JSON 파일>이 필요합니다.')
     config = validate(json.loads(args.config.read_text(encoding='utf-8-sig'))) if args.config else interactive()
+    if not args.check and (not args.step or args.step in GROUPS) and any(g in config['selected'] for g in GROUPS) and not config['contentCommit']:
+        raise ValueError('커맨드·스킬 미리보기에서 확인한 SHA를 contentCommit에 지정하세요. python3 linux/content.py preview')
     if os.getuid() == 0:
         raise ValueError('root가 아닌 개발 계정에서 실행하세요.')
     if not any(line in ('ID=ubuntu', 'ID="ubuntu"') for line in Path('/etc/os-release').read_text().splitlines()):

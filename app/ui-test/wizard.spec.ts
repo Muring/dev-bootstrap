@@ -6,13 +6,13 @@ test.beforeEach(async({page})=>{
   const config=defaults(catalog);
   await page.addInitScript(({catalog,config})=>{
     const state:any={config,events:[],busy:false,phase:'configure',logPath:'test.log',inspection:{supported:true,wslReady:true,locationSupported:true,distros:[{name:'Ubuntu',location:'D:\\WSL\\Ubuntu',version:2}],drives:[{root:'D:\\',freeGB:415}],orcaInstalled:false,patchSupported:false,patchApplied:false,linux:{osId:'ubuntu',users:['muring'],user:'muring',zshrc:true,gitName:'',gitEmail:'',gitBranch:'main',timezone:'Asia/Seoul',auth:{gh:false,claude:false,codex:false},tools:{gh:true,claude:true,codex:true}}}};
-    (window as any).bootstrap={snapshot:async()=>structuredClone(state),catalog:async()=>catalog,save:async(c:any)=>{state.config=c;return structuredClone(state)},inspect:async()=>structuredClone(state),prepare:async()=>({reboot:false}),install:async()=>({restartWsl:false}),run:async()=>{state.events=state.config.selected.map((step:string)=>({step,status:step==='kb'?'action-required':'completed',message:step==='kb'?'GitHub 로그인 필요':'실제 상태 확인 완료',time:Date.now()/1000,version:1}));state.events.push({step:'_run',status:'incomplete',message:'연결 대기',version:1,time:Date.now()/1000});return structuredClone(state)},stop:async()=>{},login:async(t:string)=>{state.inspection.linux.auth[t]=true;return structuredClone(state)},shutdown:async()=>structuredClone(state),reboot:async()=>{},logs:async()=>{}};
+    (window as any).bootstrap={snapshot:async()=>structuredClone(state),catalog:async()=>catalog,save:async(c:any)=>{state.config=c;return structuredClone(state)},inspect:async()=>structuredClone(state),prepare:async()=>({reboot:false}),install:async()=>({restartWsl:false}),previewContent:async()=>{state.config.contentCommit='a'.repeat(40);state.contentPreview={commit:state.config.contentCommit,message:'공용 명령 업데이트',commands:['commit'],skills:['commit'],changes:[{path:'skills/commit/SKILL.md',status:'modified'}]};return structuredClone(state)},updateContent:async()=>{(window as any).contentApplied=true;return structuredClone(state)},run:async()=>{(window as any).installerRan=true;state.events=state.config.selected.map((step:string)=>({step,status:step==='kb'?'action-required':'completed',message:step==='kb'?'GitHub 로그인 필요':'실제 상태 확인 완료',time:Date.now()/1000,version:1}));state.events.push({step:'_run',status:'incomplete',message:'연결 대기',version:1,time:Date.now()/1000});return structuredClone(state)},stop:async()=>{},login:async(t:string)=>{state.inspection.linux.auth[t]=true;return structuredClone(state)},shutdown:async()=>structuredClone(state),reboot:async()=>{},logs:async()=>{}};
   },{catalog,config});
   await page.goto('/');
 });
 test('recommended choices preserve existing config and dependency deselection cascades',async({page})=>{
   await page.getByRole('button',{name:'설치 구성 선택 →'}).click();
-  await expect(page.getByRole('checkbox')).toHaveCount(20);
+  await expect(page.getByRole('checkbox')).toHaveCount(21);
   await expect(page.getByRole('checkbox',{name:'.zshrc 전체 교체',exact:false})).not.toBeChecked();
   await expect(page.getByRole('checkbox',{name:'Claude 권한 경고 생략',exact:false})).not.toBeChecked();
   await expect(page.getByRole('checkbox',{name:'Orca 1.4.202',exact:false})).toBeDisabled();
@@ -36,4 +36,23 @@ test('review, progress, authentication, and incomplete summary are separate',asy
   await page.getByRole('button',{name:'결과 확인 · 로그인은 나중에'}).click();
   await expect(page.getByRole('heading',{name:'마무리할 항목이 있습니다'})).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('content update requires preview and does not run installer',async({page})=>{
+  await page.getByRole('button',{name:'커맨드 · 스킬 업데이트',exact:false}).click();
+  await expect(page.getByRole('button',{name:'확인한 버전 적용'})).toBeDisabled();
+  await page.getByRole('button',{name:'업데이트 확인',exact:true}).click();
+  await expect(page.getByText('a'.repeat(40),{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'확인한 버전 적용'}).click();
+  expect(await page.evaluate(()=>(window as any).contentApplied)).toBe(true);
+  expect(await page.evaluate(()=>(window as any).installerRan)).toBeUndefined();
+});
+test('changing content targets requires another preview',async({page})=>{
+  await page.getByRole('button',{name:'커맨드 · 스킬 업데이트',exact:false}).click();
+  await page.getByRole('button',{name:'업데이트 확인',exact:true}).click();
+  await expect(page.getByRole('button',{name:'확인한 버전 적용'})).toBeEnabled();
+  await page.getByRole('button',{name:'대상 선택 변경'}).click();
+  await page.getByRole('checkbox',{name:'Codex 공용 스킬',exact:false}).uncheck();
+  await page.getByRole('button',{name:'커맨드 · 스킬 업데이트',exact:false}).click();
+  await expect(page.getByRole('button',{name:'확인한 버전 적용'})).toBeDisabled();
 });
