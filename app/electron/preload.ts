@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('bootstrap', {
   previewContent: () => ipcRenderer.invoke('content-preview'),
   updateContent: () => ipcRenderer.invoke('content-update'),
   prepare: () => ipcRenderer.invoke('prepare'),
+  installOrca: () => ipcRenderer.invoke('orca-install'),
   install: () => ipcRenderer.invoke('install'),
   run: (step?: string) => ipcRenderer.invoke('run', step),
   stop: () => ipcRenderer.invoke('stop'),

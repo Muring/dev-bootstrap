@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { downloadOrca } from './orca';
 import { Config, ContentPreview, CONTENT_GROUPS, defaults, Inspection, InstallEvent, Item, Snapshot, validate } from './model';
 
 let window: BrowserWindow;
@@ -190,7 +191,16 @@ async function main() {
   ipcMain.handle('catalog',()=>catalog);
   ipcMain.handle('save',async(_event,value)=>{if(busy)throw Error('설치 중에는 구성을 변경할 수 없습니다.'); const next=validate(value,catalog); if(contentKey(config)!==contentKey(next)){contentPreview=undefined;next.contentCommit='';} if(config.distro!==next.distro||config.user!==next.user)inspection=undefined; if(JSON.stringify(config)!==JSON.stringify(next)) currentEvents=''; config=next; await persist(); return snapshot();});
   ipcMain.handle('inspect',()=>guarded(inspect));
-  ipcMain.handle('content-preview',()=>guarded(previewContent));
+  ipcMain.handle('orca-install',()=>guarded(async()=>{
+    const current=await helper('inspect') as Inspection;
+    if(!current.supported)throw Error('Windows 11 x64에서 실행하세요.');
+    if(current.orcaInstalled)throw Error('Orca가 이미 설치되어 있습니다. 업데이트는 Orca 앱에서 진행하세요.');
+    const installer=await downloadOrca(path.join(stateDir,'downloads'));
+    const error=await shell.openPath(installer);
+    if(error)throw Error(`Orca 설치 창을 열지 못했습니다: ${error}`);
+    return snapshot();
+  }));
+  ipcMain.handle('content-preview' ,()=>guarded(previewContent));
   ipcMain.handle('content-update',()=>guarded(updateContent));
   ipcMain.handle('prepare',()=>guarded(async()=>{const result=await helper('prepare'); phase=result.reboot?'reboot':'inspect'; await inspect(); return {reboot:result.reboot};}));
   ipcMain.handle('install',()=>guarded(async()=>{
