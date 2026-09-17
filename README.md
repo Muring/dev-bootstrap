@@ -6,7 +6,7 @@ Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마�
 
 ## 앱으로 시작하기
 
-1. [v0.1.0 설치 파일 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/v0.1.0/DevBootstrap-0.1.0-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
+1. [DevBootstrap-0.1.0-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.0-x64.exe/DevBootstrap-0.1.0-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
 2. 다운로드한 `DevBootstrap-0.1.0-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
 3. **환경 확인**을 누릅니다. WSL, 기존 Ubuntu, 드라이브 여유 공간과 Orca 상태를 검사합니다.
 4. WSL이 없으면 **WSL 준비 / 업데이트**를 누릅니다. 이 단계에서만 Windows 관리자 권한을 요청합니다.
@@ -20,8 +20,8 @@ Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마�
 
 **사용자 PC에 Git, Node, Python을 미리 설치하거나 이 저장소를 clone할 필요가 없습니다.**
 실행 파일에 앱 런타임과 설치 스크립트가 들어 있습니다. 개발 도구 다운로드에는 인터넷이 필요합니다.
-[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/v0.1.0)에서 변경 내용과
-[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/v0.1.0/SHA256SUMS.txt)도 확인할 수 있습니다.
+[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/DevBootstrap-0.1.0-x64.exe)에서 변경 내용과
+[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.0-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
 현재 버전은 서명되지 않은 **초기 검증판(Pre-release)**입니다. 신규 Windows 전체 설치 검증은 아직 남아 있습니다.
 GitHub의 `Source code (zip/tar.gz)`는 개발용 소스이며, 설치할 때는 `.exe` 파일을 받으세요.
 
