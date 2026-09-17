@@ -106,6 +106,36 @@ python3 linux/content.py apply --commit <확인한-40자리-SHA> --group claude-
 비대화형 전체 설치 JSON에서 콘텐츠 항목을 선택했다면 `"contentCommit": "<확인한-40자리-SHA>"`를 넣어야 합니다.
 대화형 설치와 앱은 변경 확인 단계에서 값을 채웁니다. 콘텐츠를 선택하지 않은 기존 구성에는 필요 없습니다.
 
+## AI 작업 명령
+
+Claude에서는 `/명령`, Codex에서는 `$명령`으로 같은 원본을 호출합니다. 위 커맨드·스킬 업데이트로 함께 설치됩니다.
+
+| 명령 | 역할 |
+|---|---|
+| `code-audit` | 프로젝트 **전체 코드**를 11개 관점에서 점검. 변경분 검사로 축소하지 않음 |
+| `verify-changes` | `.agent-checks.json`에 따라 변경 후 기존 회귀 검사 실행. 요약과 상세 로그 경로 반환 |
+| `usage-report` | 로컬 Codex·Claude 사용량을 기간·프로젝트·세션별 집계. 과금/한도 조회와 구분 |
+| `wait-deploy` | 기존 GitHub 배포·CI 상태를 backoff로 대기. push나 배포 실행 없음 |
+| `session-brief` | 결정·검증·남은 일과 worktree 상태를 짧게 인계 |
+| `shopify-pdp` | PDP 제작 도구. 변경 섹션 검증과 짧은 결과 출력 지원 |
+
+스크립트는 각 `skills/<명령>/scripts/`에 있고 스킬 경로를 기준으로 실행합니다. `verify-changes`는 같은 콘텐츠 버전의 `session-brief` 조회 모듈을 사용합니다. 실행기는 Python 3.10+와 Git이 있는 Linux/WSL 환경용이며 배포 대기는 인증된 `gh`, PDP 브라우저 검증은 기존 `pdp setup` 런타임이 필요합니다.
+
+```bash
+# checkout에서 실행하는 예. 명령 파일 위치와 대상 프로젝트를 구분합니다.
+python3 skills/usage-report/scripts/usage_report.py --week --by project,tool,session --json
+python3 skills/session-brief/scripts/session_brief.py --repo /path/to/project --json
+python3 skills/verify-changes/scripts/verify_changes.py --repo /path/to/project --base HEAD --run --json
+# 대상 GitHub 저장소에서 실행하거나 --repo owner/repo --sha <전체 SHA> 지정
+python3 /path/to/dev-bootstrap/skills/wait-deploy/scripts/wait_deploy.py --context Vercel --json
+```
+
+사용량 조회의 기본 기간은 KST 월요일부터 현재까지이며 `--since`, `--until`(종료 제외), `--timezone`으로 조정합니다. `--home`을 반복해 WSL/Windows 로그를 함께 읽거나 `~/.config/ai-workflow/usage.json`에 `{"homes":["/home/me","/mnt/c/Users/Me"]}`를 저장합니다. 대화 원문·인증 파일을 출력하거나 외부로 전송하지 않습니다. 누락된 로그와 누적값 기준 누락은 warnings로 알리며 청구 전체 사용량을 보장하지 않습니다.
+
+`verify-changes`는 기본적으로 실행 계획만 보여주고 `--run`에서 설정의 argv를 실행합니다. `--all`도 등록된 회귀 검사 전체를 뜻하며 전체 코드 감사가 아닙니다. 기존 통과 결과를 캐시하지 않습니다. UI 검증은 대상 URL·worktree·인증 상태를 맞추고 기존 Orca 탭을 우선 사용합니다.
+
+PDP는 `pdp verify --project DIR --sections 2,5 --summary`로 부분 반복 검증을 할 수 있습니다. 부분 결과는 별도 경로에 기록하며 최종 전달 전에는 `--sections` 없이 전체 검증합니다. `pdp audit --project DIR --summary`는 전체 구조 검사입니다. 로컬 PDP 도구를 업데이트된 공용 원본으로 옮길 때는 기존 실제 디렉터리를 보관한 뒤 링크를 바꾸고, 서로 다른 원본을 덮어쓰지 않습니다.
+
 ## 기본 구성과 Recommended
 
 | 항목 | MuRing 구성 | 공통 구성 |
