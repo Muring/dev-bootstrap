@@ -1,0 +1,63 @@
+{
+  "name": "dev-bootstrap-wizard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows and Ubuntu development setup wizard",
+  "author": "MuRing",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "build": "tsc --noEmit && vite build && tsc -p tsconfig.electron.json",
+    "start": "npm run build && electron .",
+    "test": "tsx --test test/*.test.ts",
+    "dist:win": "npm run build && electron-builder --win portable --x64",
+    "test:ui": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource-variable/noto-sans-kr": "^5.3.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "44.4.1",
+    "electron-builder": "26.15.3",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vite": "8.3.0"
+  },
+  "build": {
+    "appId": "dev.muring.bootstrap",
+    "productName": "Dev Bootstrap",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "..",
+        "to": "bootstrap",
+        "filter": [
+          "linux/**/*",
+          "windows/**/*",
+          "shared/**/*",
+          "skills/**/*",
+          "commands/**/*",
+          "!**/__pycache__/**"
+        ]
+      }
+    ],
+    "win": {
+      "target": "portable",
+      "signAndEditExecutable": false
+    },
+    "artifactName": "DevBootstrap-${version}-${arch}.${ext}",
+    "compression": "normal"
+  }
+}

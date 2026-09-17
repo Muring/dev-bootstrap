@@ -1,263 +1,282 @@
-# dev-bootstrap
+# Dev Bootstrap
 
-새 PC 에 WSL2 + Ubuntu 개발환경을 다시 세우는 스크립트. 개인 MuRing-KB도 설치하며, 업무 프로젝트 코드는 다루지 않는다.
+Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마법사**입니다.
+개인 PC 재설치를 위한 MuRing 구성을 기본 제공하고, 공통 개발환경 구성도 선택할 수 있습니다.
+업무 프로젝트, 프로젝트의 비밀값, DB 설정은 설치하지 않습니다.
 
-## 쓰는 법
+## 앱으로 시작하기
 
-새 Windows PC 에는 **git 도 Claude Code 도 없다.** 첫 발만 손으로 뗀다.
+1. [v0.1.0 설치 파일 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/v0.1.0/DevBootstrap-0.1.0-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
+2. 다운로드한 `DevBootstrap-0.1.0-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
+3. **환경 확인**을 누릅니다. WSL, 기존 Ubuntu, 드라이브 여유 공간과 Orca 상태를 검사합니다.
+4. WSL이 없으면 **WSL 준비 / 업데이트**를 누릅니다. 이 단계에서만 Windows 관리자 권한을 요청합니다.
+5. 재부팅이 필요하면 작업을 저장하고 재부팅한 다음 같은 앱을 다시 엽니다.
+6. Ubuntu 저장 위치와 Linux 사용자명을 선택하고 **Ubuntu 설치**를 누릅니다. 기존 Ubuntu라면 현재 위치와 개발 계정을 사용합니다.
+7. **설치 구성**에서 원하는 항목을 선택합니다. `Recommended`는 권장 표시이며 선택을 해제할 수 있습니다.
+8. **변경 내용 확인**에서 설치 대상과 설정 변경을 확인하고 설치를 시작합니다.
+9. 별도 Ubuntu 실행 창의 안내를 따릅니다. 기존 계정의 sudo 비밀번호가 필요하면 그 창에 입력합니다.
+10. 앱의 **로그인 · 연동**에서 GitHub·Claude·Codex 로그인과 KB·Orca 연결을 마칩니다.
+11. **완료** 화면에서 설치와 계정 연결 상태를 각각 확인합니다.
 
-```powershell
-# Windows (관리자 PowerShell) — git 없이 받아서 실행한다
-irm https://raw.githubusercontent.com/Muring/dev-bootstrap/main/windows/bootstrap.ps1 `
-  -OutFile $env:TEMP\bootstrap.ps1
-powershell -ExecutionPolicy Bypass -File $env:TEMP\bootstrap.ps1
-```
+**사용자 PC에 Git, Node, Python을 미리 설치하거나 이 저장소를 clone할 필요가 없습니다.**
+실행 파일에 앱 런타임과 설치 스크립트가 들어 있습니다. 개발 도구 다운로드에는 인터넷이 필요합니다.
+[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/v0.1.0)에서 변경 내용과
+[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/v0.1.0/SHA256SUMS.txt)도 확인할 수 있습니다.
+현재 버전은 서명되지 않은 **초기 검증판(Pre-release)**입니다. 신규 Windows 전체 설치 검증은 아직 남아 있습니다.
+GitHub의 `Source code (zip/tar.gz)`는 개발용 소스이며, 설치할 때는 `.exe` 파일을 받으세요.
 
-실행하면 **저장 위치 선택 메뉴를 먼저 표시**한다. Windows 기본 위치(기존 Ubuntu가 있으면
-현재 위치 유지), 각 로컬 드라이브의 전용 폴더와 여유 공간, 폴더 직접 지정, 취소를 제공한다.
-번호를 선택해야 진행하며 빈 입력으로 기본값을 자동 선택하지 않는다.
+첫 버전의 지원 대상은 **Windows 11 x64 + WSL2 + Ubuntu**입니다.
+기존 WSL1 배포판의 자동 전환, 기존 Ubuntu의 이동·삭제, 다른 Linux 배포판은 지원하지 않습니다.
+Windows 저장 위치는 Ubuntu 가상 디스크의 위치이며, Ubuntu 내부 홈 경로는 `/home/<사용자>`입니다.
+새 Ubuntu 계정에는 개발용 WSL을 위한 비밀번호 없는 sudo 권한이 부여됩니다.
 
-이미 위치를 정했거나 자동 실행할 때는 실행 명령에 선택을 전달한다:
+## 설치 후와 다음 버전 사용
 
-```powershell
-# C드라이브: C:\WSL\Ubuntu
-powershell -ExecutionPolicy Bypass -File $env:TEMP\bootstrap.ps1 -InstallDrive C
-# D드라이브: D:\WSL\Ubuntu
-powershell -ExecutionPolicy Bypass -File $env:TEMP\bootstrap.ps1 -InstallDrive D
-# 원하는 폴더 직접 지정 (공백 포함 가능)
-powershell -ExecutionPolicy Bypass -File $env:TEMP\bootstrap.ps1 -InstallLocation 'D:\Linux Data\Ubuntu'
-```
+- 첫 설치는 환경 확인 → 설치 구성 → 변경 내용 확인 → 설치 → 로그인·연동 순서로 진행합니다.
+- 설치 도중 재부팅하면 같은 EXE를 다시 실행하고 환경 확인 후 계속합니다.
+- 설치가 끝나면 새 Ubuntu 터미널에서 선택한 도구의 버전을 확인합니다. KB 등록 후에는 새 Codex 세션을 시작합니다.
+- 실패하면 **로그 폴더 열기**에서 해당 실행의 `events.jsonl`과 `events.log`를 확인하고 미완료 단계를 재시도합니다.
+- 다음 버전은 [전체 릴리스 목록](https://github.com/Muring/dev-bootstrap/releases)에서 새 EXE를 받아 실행합니다.
+  자동 업데이트는 없습니다. 같은 Windows 계정의 선택 기록을 읽고 실제 상태를 다시 검사합니다.
+- 다음 버전 설치도 변경 내용 확인 화면을 거칩니다. 기존 Ubuntu나 개발환경을 먼저 삭제할 필요가 없습니다.
+- 개발자가 새 버전을 배포하는 절차는 [배포 가이드](docs/RELEASING.md)를 따릅니다.
 
-- 옵션을 생략하면 메뉴에서 선택한다. 명령 인자로 위치를 주면 메뉴와 선택 위치를 표시하고 추가 입력 없이 진행한다. 두 옵션은 동시에 지정하지 않는다.
-- 선택한 위치에 Ubuntu 가상 디스크가 저장된다. Ubuntu 내부 `/home` 경로는 그대로다.
-- 기존 Ubuntu가 있으면 현재 저장 위치를 표시한다. 지정한 위치가 다르면 중단하며 자동 이동하지 않는다.
-- 드라이브가 없거나 대상 폴더가 비어 있지 않으면 설치 전에 중단한다.
-- WSL의 [`--location`](https://learn.microsoft.com/en-us/windows/wsl/basic-commands#install)을
-  사용한다. 지원하지 않는 구형 WSL이면 `wsl --update` 후 같은 명령을 재실행한다.
-  WSL 자체가 없으면 `wsl --install --no-distribution`으로 먼저 준비하고 필요한 재부팅 후 재실행한다.
-- 재부팅 후에도 같은 위치 옵션을 사용한다. 설치 후 등록된 실제 위치를 다시 확인한다.
+## 기본 구성과 Recommended
 
-이게 WSL2 + Ubuntu 를 올리고, 그 안에서 저장소를 clone 한 뒤 `setup.sh` 까지 돌린다.
-(Ubuntu WSL 이미지는 `ubuntu-wsl` 이 git·curl 을 끌어오므로 안쪽 clone 은 안전하다.)
+| 항목 | MuRing 구성 | 공통 구성 |
+|---|---|---|
+| Git·Python·curl·빌드 도구 | Required | Required |
+| fnm·Node 22.23.2·Corepack | 선택됨 · Recommended | 선택됨 · Recommended |
+| GitHub CLI | 선택됨 · Recommended | 선택됨 · Recommended |
+| Claude Code·Codex | 각각 선택됨 · Recommended | 선택 해제 |
+| zsh·로그인 셸 변경 | 선택됨 · Recommended | 선택 해제 |
+| 프롬프트·zsh 플러그인 | 선택됨 · zsh 사용 시 Recommended | 선택 해제 |
+| 기존 `.zshrc` 전체 교체 | 선택 해제 | 선택 해제 |
+| Git 작성자·기본 브랜치·Windows GCM | 각각 선택 해제 | 각각 선택 해제 |
+| 시간대 변경 | Asia/Seoul 선택됨 | 기존 값 유지 |
+| Claude 개인 설정·스킬·커맨드 | 각각 선택됨 | 선택 해제 |
+| Claude 권한 경고 생략 설정 | 선택 해제 | 선택 해제 |
+| 개인 KB·Orca 스킬 | 각각 선택됨 · Recommended | 선택 해제 |
+| Orca 1.4.202 패치 | 선택 해제 | 선택 해제 |
 
-`setup.sh` 가 `skills/dev-setup` 을 `~/.claude/skills/` 로 링크한 **다음부터** 클로드에게
-말로 시킬 수 있다:
+도구를 선택하면 필요한 의존성도 함께 선택합니다. 의존성을 해제하면 관련 도구도 함께 해제하며,
+화면에 함께 변경된 항목을 표시합니다. 선택하지 않은 항목은 설치 실패로 집계하지 않습니다.
+Orca 패치는 검증된 파일이 있을 때만 선택 가능합니다.
 
-> 개발환경 구축해줘
+### 기존 설정은 어떻게 처리하나요?
 
-즉 **스킬은 저절로 생기지 않는다.** 이 저장소가 심어준다. 첫 PC 에서는 위 두 줄이 먼저다.
+- 기본 동작은 **기존 `.zshrc` 보존**입니다. 필요한 초기화만 관리 블록으로 연결합니다.
+- 공통 실행 경로와 fnm 초기화는 `~/.config/dev-bootstrap/env.sh`에 저장합니다.
+- Bash의 `.bashrc`와 실제 사용되는 로그인 설정에도 초기화를 연결합니다.
+- zsh를 선택하면 `.zshrc`에 연결을 추가합니다. `.zshrc.local`은 마지막에 읽습니다.
+- 프롬프트·단축키·플러그인을 선택하면 기존 사용자 파일을 지우지 않고 관리 설정을 읽습니다.
+  이 관리 설정이 기존 프롬프트·단축키의 동작을 바꿀 수 있으며, `.zshrc.local`에서 조정할 수 있습니다.
+- **전체 교체를 직접 선택한 경우에만** 기존 `.zshrc`를 교체합니다.
+- 변경하는 사용자 설정 파일은 같은 폴더에 `.bak.<시간>`으로 백업합니다.
+- 같은 구성으로 반복 실행해도 관리 블록이나 백업이 불필요하게 늘어나지 않습니다.
+- Claude 설정 파일이 이미 있으면 개인 기본 설정으로 덮어쓰지 않습니다.
+  별도로 선택한 권한 경고 생략 설정은 백업 후 해당 키만 변경합니다.
+- 기존 Claude 스킬·커맨드 경로가 일반 디렉터리라면 보존하고 충돌을 보고합니다.
 
-이미 WSL 이 있다면 Ubuntu 안에서 이것만:
+앱 설치 자산은 Ubuntu의 `~/.local/share/dev-bootstrap/runtime`에 복사합니다.
+스킬·커맨드 링크는 이 위치를 가리키므로 Windows 실행 파일을 옮겨도 유지됩니다.
+앱에서 설치할 때 저장소의 최신 코드를 자동 pull하지 않습니다.
 
-```bash
-git clone https://github.com/Muring/dev-bootstrap.git ~/dev/dev-bootstrap
-GIT_USER_NAME="이름" GIT_USER_EMAIL="메일" bash ~/dev/dev-bootstrap/linux/setup.sh
-```
+## 로그인과 수동 작업
 
-두 스크립트 모두 **멱등하다.** 몇 번을 돌려도 같은 상태가 된다.
+### GitHub / 개인 KB
 
-`setup.sh` 는 끝에서 **실제로 돌려보고** 하나라도 어긋나면 `exit 1` 로 끝난다.
-안내문만 찍고 성공한 척하지 않는다.
+앱의 GitHub 로그인 버튼을 누르면 대상 Ubuntu 터미널에서 로그인을 진행합니다.
+MuRing 기본 KB는 `https://github.com/Muring/muring-kb.git`이며 해당 비공개 저장소 읽기 권한이 필요합니다.
+공통 구성에서도 KB를 선택하고 다른 GitHub HTTPS 저장소와 Ubuntu 설치 경로를 지정할 수 있습니다.
+대상 KB는 `START-HERE.md`, `scripts/setup.py`, `scripts/kb.py`를 제공하는 호환 저장소여야 합니다.
 
-## 설치 순서와 중단 기준
+인증 후 **KB 연결 재시도**를 누릅니다. 기존 KB checkout은 자동 pull하지 않습니다.
+연결이 끝나면 새 Codex 세션을 시작하세요.
 
-1. Windows에서 Ubuntu 저장 위치를 확인하고 WSL·Ubuntu·사용자를 준비한다.
-2. Linux 시작 시 sudo 권한과 필수 실행 도구를 확인한다.
-3. 기본 패키지·Python → gh → 시스템 설정 → fnm/Node → Claude·Codex를 설치한다.
-4. zsh·Git·Claude 설정과 dev-setup 스킬·커맨드를 배치한다.
-5. 기본 개발환경을 검증한다.
-6. MuRing-KB → Orca 스킬 → Orca 이름 생성 패치를 실행한다.
-7. 로그인·재시작 안내와 미완료 목록을 한 번에 보여준다.
+### Claude / Codex
 
-기본 패키지나 Node 설치처럼 뒤 단계에 필요한 작업이 실패하면 즉시 중단한다.
-KB 인증, Orca 브리지·앱 버전·파일 잠금 문제는 다른 항목을 계속 처리한 뒤
-최종 미완료 목록에 합치고 종료 코드 1을 반환한다.
-KB 단계는 300초, Orca 스킬 호출은 120초, 패치는 180초로 대기를 제한한다.
-시간을 넘기면 KB·패치는 미완료 처리하고, Orca 스킬은 실제 설치된 디렉터리를 확인한다.
-네트워크 상황에 따라 다시 실행해야 할 수 있으며 모든 설치의 무오류를 보장하지는 않는다.
+앱의 로그인 버튼으로 각각 로그인합니다. 앱은 계정 토큰이나 비밀번호를 수집·저장하지 않습니다.
+CLI 자체가 관리하는 인증 상태만 검사합니다. 로그인은 나중에 할 수 있으며 설치 완료와 구분됩니다.
 
-Orca 스킬 설치는 앱이 실행된 상태에서 먼저 처리하고, 패치는 마지막에 시도한다.
-파일이 잠겨 있으면 전체 설치가 끝난 뒤 Orca를 종료하고 패치만 다시 실행하면 된다.
-`~/.local/bin`은 현재 설치 과정과 새 zsh 세션 모두 PATH에 포함한다.
-Corepack 다운로드 확인 입력은 비활성화하고 npm 설치 진행 출력은 표시한다.
-순서·실패 집계 검증: `python3 tests/setup-order.py` (외부 앱 대역 사용).
+### Orca
 
-## 구성하는 것
+Orca 앱 자체의 다운로드·설치는 자동화하지 않습니다.
 
-| | |
-|---|---|
-| Windows | WSL2, Ubuntu (cloud-init 무인 사용자 생성) |
-| Ubuntu | build-essential, ca-certificates, curl, git, unzip, zsh, python3 |
-| gh | **cli.github.com 저장소를 먼저 붙인다.** Ubuntu 공식 저장소의 gh 는 낡았다(2.46 vs 2.100) |
-| 타임존 | `Asia/Seoul` (`TIMEZONE` 으로 바꾼다) |
-| Node | fnm → Node 22.23.2 → corepack (yarn 은 프로젝트 `packageManager` 를 따른다) |
-| 전역 npm | `@anthropic-ai/claude-code`, `@openai/codex` |
-| 셸 | zsh + autosuggestions + syntax-highlighting, `.zshrc` |
-| git | `init.defaultBranch=main`, credential.helper → Windows GCM |
-| Claude | `~/.claude/settings.json` (기존 파일은 덮어쓰지 않는다) |
-| Claude 커맨드 | `~/.claude/commands` → 이 저장소 `commands/` 링크. `/commit`, `/blog-draft` |
-| MuRing-KB | private 저장소 clone, Codex 지침 등록, `mkb` 설치·검증 |
-| Orca 이름 생성 | WSL 설치 시 검증된 Windows 1.4.202 앱 패치 자동 적용·백업·체크섬 검사 |
-| Orca 스킬 | Windows 앱이 `~/.local/bin/orca-ide` 브리지를 만든다 → `orca-ide skills install` |
+1. Windows용 Orca 설치 파일로 직접 설치하고 로그인합니다.
+2. Orca에서 설치 대상 Ubuntu의 WSL 터미널을 한 번 엽니다.
+3. 설치 마법사에서 **Orca 스킬 연결**을 누릅니다.
+4. 패치를 선택했다면 스킬 연결 후 Orca를 완전히 종료하고 **패치 적용**을 누릅니다.
 
-## MuRing-KB 설치
-
-Windows bootstrap과 WSL `setup.sh` 모두 다음을 실행한다.
-
-1. Python 3 준비, `~/dev/muring-kb`에 private 저장소 clone.
-2. KB의 `scripts/setup.py`로 현재 사용자 Codex 전역 지침 등록.
-3. `scripts/kb.py install`로 `~/.local/bin/mkb` 연결.
-4. `setup.py --check`, 명령 연결 대상과 `mkb --version` 검증.
-
-기존 KB checkout은 로컬 변경을 유지한 채 사용하며 자동 pull하지 않는다.
-기존 Codex 지침 보존·백업·`CODEX_HOME` 및 override 처리는 KB 설치 도구에 맡긴다.
-설정 반영 후 새 Codex 세션을 시작한다. Claude 지침 등록, 의미 검색 모델,
-프론트엔드 MCP는 이 단계에 포함되지 않는다.
-
-**새 PC에서는 private 저장소 읽기 권한이 필요하다.** 인증이 없거나 clone에 실패하면
-KB를 미완료로 기록한다. 나머지 설치 단계는 계속 진행하며 최종 결과는 실패로 반환한다.
-기본 설치를 끝낸 뒤 KB·Orca 미완료 목록을 함께 볼 수 있다.
-로그인 후 KB만 마저 설치할 수도 있다:
-
-```bash
-gh auth login --hostname github.com
-bash ~/dev/dev-bootstrap/linux/setup-kb.sh
-```
-
-인증된 `gh`가 있으면 해당 clone에만 인증 helper를 사용한다.
-없으면 기존 Git 인증 설정을 사용하며 로그인 입력을 기다리지 않는다.
-KB 내용과 인증 정보는 이 public 저장소에 복사하지 않는다.
-
-회귀 검증: `python3 tests/setup-kb.py /path/to/muring-kb` (로컬 원본과 임시 사용자 폴더 사용).
-
-다른 설치 위치나 저장소는 `MURING_KB_DIR`, `MURING_KB_REPO` 환경변수로 지정한다.
-이미 있는 디렉터리가 Git checkout이 아니거나 origin이 다르면 중단한다.
-
-## Orca WSL 자동 이름 생성 오류
-
-WSL의 Codex가 정상인데 워크트리 브랜치·폴더 이름 생성에서
-`codex not found on PATH`가 뜨는 오류를 설치 중 보정한다.
-Orca가 작업 경로의 WSL 배포판을 계정 환경 준비와 실행에 전달하도록 하는 로컬 패치다.
-
-- Windows `bootstrap.ps1` → WSL `setup.sh`와 WSL 직접 설치 모두 자동 적용한다.
-- **Windows Orca 1.4.202의 검증된 app.asar만 지원한다.** 원본·패치본 SHA-256으로
-  판별한다. 미설치·다른 빌드·파일 잠금은 마지막 미완료 목록에 기록한다.
-- Orca 스킬·브리지 준비 후 앱을 완전히 종료하면 패치를 적용할 수 있다. 설치 프로그램이 작업 중인 앱을 자동 종료하지 않는다.
-  이미 패치된 경우에는 실행 중이어도 체크섬 확인만 한다.
-- 앱 전체를 저장소에 넣지 않고 `windows/patches/`의 작은 변경 데이터로 재구성한다.
-  적용 결과는 기존에 실사용 성공이 보고된 패치본과 SHA-256이 같아야 한다.
-- 원본 백업은 `resources/app.asar.bootstrap-wsl-rename.original`에 보관한다.
-  업데이트로 패치가 사라질 수 있으며, 다른 버전은 수정 필요 여부부터 다시 점검한다.
-  앱 자동 업데이트 감시·재패치는 하지 않는다.
-
-패치만 재실행하거나 기본 경로(`%LOCALAPPDATA%\Programs\orca`)가 다른 경우:
+자동 검사 경로는 `%LOCALAPPDATA%\Programs\orca`입니다.
+패치는 **검증된 Windows Orca 1.4.202 app.asar만** 지원합니다.
+원본과 결과 SHA-256을 확인하며 원본을 `resources/app.asar.bootstrap-wsl-rename.original`에 백업합니다.
+다른 버전은 수정하지 않습니다. 앱을 자동 종료하거나 업데이트 후 자동 재패치하지 않습니다.
+사용자 지정 경로의 패치는 아래 CLI를 사용합니다.
 
 ```powershell
-# 저장소 루트, Orca를 종료한 상태에서 실행
-powershell -ExecutionPolicy Bypass -File windows\fix-orca-wsl-rename.ps1
-# 사용자 지정 설치 경로
 powershell -ExecutionPolicy Bypass -File windows\fix-orca-wsl-rename.ps1 -AppDir 'D:\Apps\orca'
-# 백업 복구 (패치된 설치본에만 적용)
+# 패치된 파일을 검증된 백업으로 복원
 powershell -ExecutionPolicy Bypass -File windows\fix-orca-wsl-rename.ps1 -Restore
 ```
 
-패치 회귀 검증은 설치본을 건드리지 않는 임시 폴더에서 수행한다:
-`powershell -ExecutionPolicy Bypass -File tests\orca-wsl-rename.ps1 -OriginalArchive <검증된 원본 app.asar>`.
-로그인 후 새 워크트리 첫 메시지로 실제 제목 생성까지 확인한다.
+## 중단, 실패, 다시 실행
 
-## 자동화하지 않는 것
+- 필수 단계가 실패하면 해당 단계에 의존하는 작업은 대기합니다. 독립 작업은 계속합니다.
+- 인증·Orca 준비가 필요하면 **사용자 작업 필요**로 표시합니다.
+- **현재 단계 후 중지**는 실행 중인 명령이 끝난 다음 멈춥니다. 전체 자동 롤백은 하지 않습니다.
+- 앱을 강제 종료했거나 PC가 재부팅되어도 다시 열고 환경 확인 후 재실행할 수 있습니다.
+- 이전 성공 기록만 믿지 않고 실제 명령과 파일을 다시 검사합니다.
+- 같은 Ubuntu에서 설치가 중복 실행되지 않도록 잠금을 사용합니다.
+- WSL 재시작은 실행 중인 모든 WSL 작업을 종료하므로 앱에서 먼저 안내합니다.
 
-브라우저 대화형이라 스크립트로 못 한다:
+앱 설정과 기록: `%LOCALAPPDATA%\dev-bootstrap`
 
-- `claude` 최초 실행 로그인 · `codex login` · `gh auth login` · Orca 앱 계정 로그인
+- `state.json`: 선택 구성과 화면 상태
+- `run-<시간>/config.json`: 해당 실행의 구성
+- `run-<시간>/events.jsonl`: 단계별 상태
+- `run-<시간>/events.log`: 설치 명령 출력
 
-권한·재부팅이 끼는 지점:
+로그인 터미널의 출력은 설치 로그로 수집하지 않습니다. 로그는 **로그 폴더 열기** 버튼으로 확인합니다.
 
-- `wsl --install` 은 **관리자 권한**이 필요하고, WSL 기능이 처음 켜지는 PC 는 **재부팅**해야 끝난다.
-- `/etc/wsl.conf` 를 새로 썼으면 `wsl --shutdown` 후 재접속해야 적용된다.
+## CLI로 설치하기
 
-## 비밀값
+앱 없이 설치하는 경로도 유지합니다. **이제 비대화형 실행에는 명시적인 JSON 구성이 필요합니다.**
+기존 `GIT_USER_NAME=... bash setup.sh` 형태 대신 구성 파일의 `gitName` / `gitEmail`과 해당 선택 항목을 사용하세요.
 
-**이 저장소에 비밀값을 넣지 않는다.** public 이다.
-`.env` 류는 각 프로젝트 저장소의 `.env.example` 과 CLAUDE.md 를 따른다.
-이름·이메일도 하드코딩하지 않고 `GIT_USER_NAME` / `GIT_USER_EMAIL` 로 받는다.
+### 새 Windows PC
 
-## 고칠 때
+관리자 PowerShell에서 실행합니다. 저장소 clone은 필요하지 않습니다.
 
-환경 구성이 바뀌면 **여기를 고치고 커밋한다.** 클로드가 그때그때 다른 명령을 치면
-PC 마다 결과가 갈린다. `linux/files/` 안의 dotfile 이 실제 배포본이다.
-
-`skills/` 와 `commands/` 는 홈으로 **복사가 아니라 링크**된다. 그래서 여기를 고치고
-`git pull` 하면 그 PC 에 바로 반영된다 — 다시 `setup.sh` 를 돌릴 필요가 없다.
-반대로 홈 쪽에서 고치면 저장소를 고치는 것이니 커밋해야 다른 PC 로 따라간다.
-
-### `setup.sh` 의 헬퍼
-
-단계를 추가할 때 `apt-get` 이나 버전 조회를 **직접 쓰지 않는다.** 아래를 통해서 쓴다.
-직접 쓰면 실패가 성공으로 보고된다 — 실제로 세 번 그랬다.
-
-| 헬퍼 | 쓰는 법 |
-|---|---|
-| `apt_step <라벨> <버전명령\|-> <패키지...>` | apt 패키지 설치. 대표 명령이 없으면 `-` |
-| `probe <명령> [인자...]` | 버전 등 한 줄 조회. 종료코드를 보고 첫 줄만 돌려준다 |
-| `step <이름>` | 단계 시작. 실패 보고에 이 이름이 찍히므로 반드시 부른다 |
-| `die <이유>` | 더 진행할 수 없을 때. 단계·이유·로그 경로를 찍고 멈춘다 |
-| `done_` / `skip` / `warn` | 각각 했음 / 이미 됨 / 문제지만 계속 |
-
-```bash
-step "gh"
-apt_step "gh" gh gh          # 라벨, 버전명령(gh --version), 패키지
-apt_step "기반" - curl git   # 대표 명령이 없으면 '-'
+```powershell
+irm https://raw.githubusercontent.com/Muring/dev-bootstrap/main/windows/bootstrap.ps1 -OutFile "$env:TEMP\bootstrap.ps1"
+powershell -ExecutionPolicy Bypass -File "$env:TEMP\bootstrap.ps1" -User muring
 ```
 
-`apt_step` 은 `apt_install` 의 종료코드를 **0=설치함 / 1=이미 있음 / 2=실패** 로 구분한다.
-이 구분이 필요한 이유는 `if out=$(apt_install ...)` 라는 조건 문맥에서는 함수 안의
-`errexit` 가 억제되기 때문이다 — `apt-get` 이 실패해도 실행이 이어지고 마지막
-`printf` 가 0 을 돌려 "설치했다" 가 된다. **함수를 조건 자리에서 부를 때는 항상
-종료코드를 직접 판정한다.**
+저장 위치 메뉴를 선택하고 진행합니다. WSL 설치 시 재부팅을 요구하면 재부팅 후 같은 명령을 실행합니다.
+위치 기능을 지원하지 않는 경우 `wsl --update`를 실행합니다.
+WSL 자체가 없으면 `wsl --install --no-distribution`부터 실행합니다.
 
-`probe` 는 `| head -1` 로 자르지 않는다. 자르면서 종료코드를 버리면 실패한 명령이
-stdout 에 뭔가 뱉기만 해도 성공으로 읽힌다. 전체를 받고 나서 첫 줄만 쓴다.
-`claude`·`codex` 는 스스로 업데이트하므로 교체되는 찰나를 대비해 2 초 간격 3 회 재시도한다.
+```powershell
+# 위치 지정
+powershell -ExecutionPolicy Bypass -File "$env:TEMP\bootstrap.ps1" -User muring -InstallDrive D
+# 비대화형 Ubuntu 설정: JSON 파일 경로 전달
+powershell -ExecutionPolicy Bypass -File "$env:TEMP\bootstrap.ps1" -User muring -ConfigFile 'C:\Setup\config.json'
+```
 
-## 함정
+구성 파일을 생략하면 Ubuntu에서 구성 선택 메뉴가 이어집니다.
+CLI의 설치 저장소는 `~/dev/dev-bootstrap`이며 기존 checkout은 자동 업데이트하지 않습니다.
+앱에 포함된 설치 버전과 GitHub main의 CLI 버전은 다를 수 있습니다.
 
-- **`.ps1` 은 UTF-8 BOM 을 유지한다.** BOM 이 없으면 Windows PowerShell 5.1 이 cp949 로
-  읽어 한글 주석이 깨지고 "종료되지 않은 문자열" 로 파싱이 실패한다. 실행 전에 확인:
-  `[System.Management.Automation.Language.Parser]::ParseFile(...)`
-- **패키지 목록을 `apt-mark showmanual` 로 뽑지 않는다.** 그건 "이 PC 에서 손으로 깐 것"이지
-  "필요한 것"이 아니다. 기반 이미지가 다르면 조용히 구멍이 난다.
-  반대로 **외부 저장소에서 온 패키지는 저장소부터 붙여야 한다** — 안 그러면 낡은 버전이
-  에러 없이 깔리고 스킵 로직도 "설치됨"으로 통과시킨다(`gh` 가 그랬다).
-- **`.sh` 는 LF 로 고정한다.** CRLF 면 WSL 에서 `bad interpreter` 가 난다.
-  `.gitattributes` 가 둘 다 강제한다.
+### 기존 Ubuntu
 
-## 처음 진짜로 돌릴 때
+Ubuntu 터미널에서 일반 개발 계정으로 실행합니다. 전체 스크립트를 sudo로 실행하지 않습니다.
 
-설치 가지는 아직 실제 신규 환경에서 돌아본 적이 없다. 그래서 **터졌을 때 바로 고칠 수
-있게** 만들어 뒀다. 미리 다 맞히려 하지 말고, 터지면 그걸 보고 고친다.
+```bash
+mkdir -p ~/dev
+git clone https://github.com/Muring/dev-bootstrap.git ~/dev/dev-bootstrap
+bash ~/dev/dev-bootstrap/linux/setup.sh
+```
 
-- 실행 로그가 `~/dev/dev-bootstrap-setup.log` 에 쌓인다(`SETUP_LOG` 로 바꾼다).
-- 필수 설치 실패는 **단계·줄번호**를 찍고 멈춘다. KB·Orca 연동 실패는 마지막에 모아 표시한다.
-- 그 출력을 그대로 클로드에게 주면 된다.
-- 고친 뒤에는 **통째로 다시 돌린다.** 멱등하므로 끝난 단계는 스킵된다.
-  중간부터 손으로 잇지 않는다 — 그러면 이 저장소가 실제 상태와 어긋난다.
-- 고친 내용은 **여기에 커밋한다.** 그 PC 에서만 손보면 다음 PC 에서 또 밟는다.
+저장소가 이미 있다면 clone은 생략합니다. 대화형 메뉴에서 권장 항목과 설정을 확인합니다.
+비대화형 실행 예시:
 
-## 알려진 한계
+```bash
+bash ~/dev/dev-bootstrap/linux/setup.sh --config ~/bootstrap-config.json
+# 선택된 한 단계만 재시도: 의존성도 실제 상태를 다시 확인
+bash ~/dev/dev-bootstrap/linux/setup.sh --config ~/bootstrap-config.json --step kb
+# 설치 없이 선택 항목 상태 검사
+bash ~/dev/dev-bootstrap/linux/setup.sh --config ~/bootstrap-config.json --check
+```
 
-정직하게 적는다. 이걸 모르고 쓰면 새 PC 에서 당황한다.
+최소 구성 예시:
 
-- **설치 경로는 아직 실제로 실행된 적이 없다.** 개발 PC 에서는 전부 "이미 있음" 으로
-  스킵되므로 `else` 가지가 한 번도 안 돈다. 검증하려면 일회용 배포판을 만든다:
-  `wsl --install Ubuntu --name bootstrap-test` → 돌려보고 → `wsl --unregister bootstrap-test`.
-- **고정된 버전은 Node 하나뿐이다.** fnm·zsh 플러그인·`claude`·`codex` 는 최신을 따라간다.
-  끝의 검증이 버전을 찍어주므로 드리프트는 보이지만, 막지는 않는다.
-- **공급망 검증이 없다.** fnm 은 `curl | bash` 로 받고 체크섬을 대조하지 않는다.
-  zsh 플러그인도 `master` 를 그대로 클론한다.
-- **cloud-init 사용자는 비밀번호 없는 sudo 를 갖는다.** 비밀번호가 아예 없어서
-  `NOPASSWD` 가 없으면 `setup.sh` 의 sudo 가 전부 막힌다. 개발용 WSL 이라 감수한 것이다.
-  원치 않으면 `wsl -d <distro>` 로 들어가 직접 사용자를 만들고 `setup.sh` 만 돌린다.
-- **`setup.sh` 는 `~/.zshrc` 를 저장소 버전으로 덮어쓴다** (`.bak.<날짜>` 백업은 남는다).
-  이 PC 전용 설정은 `~/.zshrc.local` 로 빼고 `.zshrc` 에서 source 한다.
-- **Orca 설치는 자동이 아니다.** winget 패키지가 아니라 배포용 인스톨러다.
+```json
+{
+  "version": 1,
+  "profile": "common",
+  "selected": ["base", "node", "gh"],
+  "distro": "Ubuntu",
+  "user": "developer",
+  "installLocation": "",
+  "gitName": "",
+  "gitEmail": "",
+  "timezone": "Asia/Seoul",
+  "kbRepo": "https://github.com/Muring/muring-kb.git",
+  "kbDir": "~/dev/muring-kb"
+}
+```
+
+구성 목록과 의존성의 원본은 `shared/catalog.json`입니다.
+CLI 기록은 `~/.local/state/dev-bootstrap/`에 저장됩니다.
+`--events <경로>`로 JSONL 위치를 바꿀 수 있고 `.log`와 `.stop`은 같은 이름의 확장자를 사용합니다.
+KB만 따로 재시도하는 `linux/setup-kb.sh`도 유지합니다.
+
+## 앱 개발과 빌드
+
+개발자 환경에는 Node 22.23.2 이상과 npm이 필요합니다. 일반 사용자에게는 필요 없습니다.
+
+```bash
+cd app
+npm ci
+npm run build
+npm test
+npm run dist:win
+```
+
+Windows 포터블 산출물: `app/release/DevBootstrap-0.1.0-x64.exe`
+
+Windows에서 개발용 앱을 실행하려면 `npm start`를 사용합니다.
+Linux에서 실행하면 화면 개발만 가능하며 Windows 설치 기능은 차단됩니다.
+첫 버전에는 코드 서명, 자동 업데이트, 공개 릴리스 자동 게시를 포함하지 않습니다.
+
+구조:
+
+- `app/`: Electron 메인 프로세스, 제한된 preload API, React 설치 마법사
+- `shared/catalog.json`: 두 진입점이 공유하는 설치 항목과 의존성
+- `windows/app-host.ps1`: Windows 검사, WSL 준비, Ubuntu 설치, 실행 터미널
+- `linux/runner.py`: JSON 구성 검증, 의존성 순서, 중지·재실행, JSONL 상태
+- `linux/steps.sh`: 각 단계의 검사·적용·검증
+- `linux/lib/shell_config.py`: 기존 셸 설정 보존과 관리 파일 연결
+
+Electron 화면에는 Node 접근을 주지 않습니다. 원격 웹페이지를 앱 안에 로드하지 않으며,
+프로세스 실행은 검증된 작업 ID와 인자 배열로만 수행합니다. Windows 관리자 권한은
+WSL 시스템 준비 helper에만 사용하고 Ubuntu·사용자 설정은 원래 계정 기준으로 실행합니다.
+
+## 검증
+
+시스템을 설치하지 않는 테스트:
+
+```bash
+python3 tests/setup-order.py
+python3 tests/shell-config.py
+python3 tests/setup-kb.py /path/to/muring-kb
+cd app
+npm test
+npm run build
+npx playwright install --with-deps chromium
+npm run test:ui
+```
+
+Windows PowerShell에서:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tests\app-host.ps1
+powershell -ExecutionPolicy Bypass -File tests\wsl-location.ps1
+powershell -ExecutionPolicy Bypass -File tests\orca-wsl-rename.ps1 -OriginalArchive '<검증된 원본 app.asar>'
+```
+
+`app-host.ps1` 테스트는 파싱·인자 전달과 실제 Windows 환경의 읽기 전용 검사와 별도 WSL 창의 인자 전달을 확인합니다.
+설치 실행기 테스트는 가짜 외부 명령을 사용하고, KB 테스트는 임시 홈과 로컬 원본을 사용합니다.
+
+현재 확인한 범위: 구성·의존성 테스트, 임시 홈의 셸/Git 설정 보존, KB 회귀 테스트,
+브라우저 UI 테스트, 실제 Windows helper 및 WSL 인자 전달, 패키징된 Windows 앱의
+preload·IPC·읽기 전용 WSL 검사와 구성 화면입니다.
+Orca 패치 회귀 테스트는 검증된 원본 app.asar를 확보하지 못해 이번 검증에서 실행하지 않았습니다.
+
+**신규 Windows VM에서 WSL 설치 → 재부팅 → Ubuntu 생성 → 전체 설치의 실환경 검증은 아직 완료하지 않았습니다.**
+자동 테스트와 패키징 성공이 신규 PC 설치 전체의 성공을 의미하지는 않습니다.
+실패 시 단계별 기록을 확인하고, 수정 후 같은 구성으로 다시 실행하세요.
+
+PowerShell 파일은 UTF-8 BOM, 셸 스크립트는 LF를 유지합니다.
+개인 KB 내용, 계정 토큰, 프로젝트 비밀값을 이 public 저장소에 넣지 않습니다.

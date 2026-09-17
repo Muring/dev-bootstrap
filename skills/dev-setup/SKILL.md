@@ -1,86 +1,38 @@
 ---
 name: dev-setup
-description: 새 PC(또는 새 WSL 배포판)에 이 사용자의 표준 개발환경을 구축한다. "개발환경 구축해줘", "새 컴퓨터 세팅", "dev 환경 복원", "WSL 다시 깔았어" 같은 요청에 쓴다. 개인 MuRing-KB를 제외한 프로젝트 클론은 포함하지 않는다 — 공통 환경(WSL·Ubuntu·zsh·fnm/Node·Claude·Codex·Orca 스킬)만 다룬다.
+description: Windows 또는 Ubuntu에서 선택 가능한 개발환경 설치를 진행한다. 개인 KB 외 업무 프로젝트 clone과 비밀값 설정은 포함하지 않는다.
 ---
 
 # 개발환경 구축
 
-## 먼저 어디에 있는지 판단한다
+현재 환경을 확인하고 README의 앱 또는 CLI 경로를 사용한다.
 
-`uname -s` 또는 `$env:OS` 로 지금 세션이 **Windows 쪽인지 WSL 안쪽인지** 확인한다.
-둘은 진입점이 다르다.
+- Windows에서는 설치 마법사를 우선한다. 기존 Ubuntu를 이동·삭제하지 않는다.
+- Ubuntu에서는 이 스킬이 포함된 설치 자산의 `linux/setup.sh`를 사용한다.
+  앱 설치의 자산은 `~/.local/share/dev-bootstrap/runtime`, CLI checkout은 보통 `~/dev/dev-bootstrap`이다.
+- 기존 자산이나 checkout을 자동 pull하지 않는다. Git 작업은 사용자가 요청한 범위에서만 한다.
 
-| 위치 | 진입점 |
-|---|---|
-| Windows | `windows/bootstrap.ps1` (관리자 PowerShell) — WSL 설치부터 |
-| WSL/Ubuntu | `linux/setup.sh` — 공통 환경만 |
+## 구성과 실행
 
-## 절차
+1. 사용자의 설치 대상과 이미 정한 선택을 확인한다. 항목·의존성·프로필의 원본은 `shared/catalog.json`이다.
+2. 기본 프로필은 MuRing이며 공통 구성도 제공한다. `Recommended`는 강제가 아니다.
+   기존 `.zshrc` 보존이 기본이며 전체 교체, Git 설정 변경, Claude 권한 경고 생략, Orca 패치는 별도 선택이다.
+3. 비대화형 실행에는 명시적인 JSON 구성을 전달한다.
+   `bash <설치 자산>/linux/setup.sh --config <구성 파일>`
+   대화형 터미널에서는 구성 파일 없이 실행해 메뉴를 사용할 수 있다.
+4. 사용자가 이미 승인한 구성을 다시 묻지 않는다. 이름·이메일·저장 위치를 임의로 만들지 않는다.
+5. 선택한 단계만 설치하고 검증한다. 미선택 항목의 부재를 실패로 취급하지 않는다.
 
-1. **저장소 확보.** `~/dev/dev-bootstrap` 이 있으면 `git pull --ff-only`, 없으면
-   `git clone https://github.com/Muring/dev-bootstrap.git ~/dev/dev-bootstrap`.
+## 로그인·재시작·실패 처리
 
-2. **설치 위치 선택 후 실행.** Windows에서 WSL 설치를 진행하기 전에 항상 선택지를 제시한다.
-   - Windows 기본 위치 (기존 Ubuntu가 있으면 현재 위치 유지)
-   - 사용 가능한 각 로컬 드라이브의 `드라이브:\WSL\Ubuntu` (가능하면 여유 공간도 표시)
-   - 사용자 지정 폴더
-   사용자가 이번 설치 위치를 이미 지정했으면 그 선택을 사용한다. 미지정이면 응답을 받은 뒤 실행하며
-   C/D나 기본 위치를 임의로 고르지 않는다. WSL 내부 setup.sh는 배포판 위치를 변경하지 않는다.
-
-   - Windows: `powershell -ExecutionPolicy Bypass -File windows\bootstrap.ps1`
-     사용자가 지정한 드라이브는 `-InstallDrive D`, 폴더는 `-InstallLocation 'D:\WSL\Ubuntu'`로 전달한다.
-     미지정이면 스크립트의 선택 메뉴가 입력을 기다린다. 기존 배포판의 자동 이동은 하지 않는다.
-     관리자 권한이 없으면 **사용자에게 관리자 PowerShell 로 실행해달라고 요청한다.**
-     스크립트를 우회해 직접 `wsl --install` 을 두드리지 않는다.
-   - WSL: `bash ~/dev/dev-bootstrap/linux/setup.sh`
-     이름/이메일이 필요하면 `GIT_USER_NAME=... GIT_USER_EMAIL=... bash ...` 로 넘긴다.
-     값을 지어내지 말고 사용자에게 묻는다.
-
-   WSL에서는 Orca 이름 생성 패치도 자동 실행된다. 검증된 Windows Orca 1.4.202만 지원하며,
-   미설치·다른 빌드·파일 잠금이면 최종 미완료 목록에 기록한다. 오류를 무시하고 완료로 보고하지 않는다.
-   스킬 설치가 먼저 끝난 뒤 파일 잠금이 남으면 Orca를 완전히 종료하고 패치만 재실행한다. 앱을 임의로 종료하지 않는다.
-   다른 버전은 README의 Orca 항목에 따라 호환성을 확인한다.
-
-   MuRing-KB도 clone·Codex 지침 등록·`mkb` 설치까지 실행한다.
-   private 저장소 인증 실패는 미완료다. `gh auth login --hostname github.com` 후
-   `bash ~/dev/dev-bootstrap/linux/setup-kb.sh`로 KB만 재시도할 수 있다.
-   기존 KB는 자동 pull하지 않는다. 새 Codex 세션에서 등록된 지침을 사용한다.
-
-3. **재부팅·shutdown 이 필요한 지점을 그냥 넘기지 않는다.**
-   - WSL 기능이 처음 켜진 PC 는 재부팅해야 `wsl --install` 이 끝난다.
-   - `/etc/wsl.conf` 를 새로 썼으면 Windows 에서 `wsl --shutdown` 후 재접속해야 적용된다.
-   둘 다 스크립트가 알려준다. 사용자에게 전달하고 **다음 단계로 넘어가지 않는다.**
-
-4. **검증.** 설치가 끝났다고 보고하기 전에 실제로 돌려서 확인한다.
-   ```
-   node -v && yarn -v && claude --version && codex --version
-   getent passwd "$USER" | cut -d: -f7      # /usr/bin/zsh
-   git config --global --list
-   ls -l ~/.claude/skills/dev-setup ~/.claude/commands   # 둘 다 저장소로 가는 링크
-   ```
-
-5. **남은 대화형 작업을 보고한다.** 아래 넷은 브라우저 로그인이라 자동화할 수 없다.
-   대신 해줄 수 있는 척하지 않는다.
-   - `claude` (최초 실행) · `codex login` · `gh auth login` · Orca 앱 계정 로그인
-
-## 실패했을 때
-
-설치 가지는 실제 신규 환경에서 검증된 적이 없다. 처음 돌리면 깨질 수 있고, **그게 정상이다.**
-
-1. `setup.sh` 가 실패 단계·줄번호·로그 경로(`~/dev/dev-bootstrap-setup.log`)를 찍는다. 그걸 읽는다.
-2. 원인을 고치되 **저장소의 스크립트를 고친다.** 그 PC 에서만 손으로 때우지 않는다 —
-   다음 PC 에서 똑같이 밟는다.
-3. `setup.sh` 를 **통째로 다시 돌린다.** 멱등하므로 끝난 단계는 스킵된다.
-4. 고친 것을 커밋한다. 무엇이 왜 틀렸는지 커밋 메시지에 남긴다.
-
-## 주의
-
-- `setup.sh` 는 멱등하다. 실패하면 고치고 **다시 통째로 돌린다** — 중간부터 손으로 잇지 않는다.
-- 스크립트가 하는 일을 클로드가 개별 명령으로 재현하지 않는다. PC 마다 결과가 갈린다.
-  절차를 바꿔야 하면 **스크립트를 고치고 커밋한다.**
-- 이 스킬은 개인 MuRing-KB 이외의 프로젝트 클론·`.env`·DB 접속을 다루지 않는다. 그건 각 저장소의 CLAUDE.md 소관이다.
-- `~/.claude/skills/dev-setup` 과 `~/.claude/commands` 는 저장소로 가는 **링크**다.
-  슬래시 커맨드를 고치거나 더할 때는 `~/dev/dev-bootstrap/commands/` 를 고치고 커밋한다 —
-  홈 쪽에 파일을 새로 만들면 그 PC 에만 남는다.
-  둘 중 하나가 링크가 아니면 `setup.sh` 는 경고만 하고 건드리지 않는다.
-  그때는 기존 내용을 저장소로 옮긴 뒤 실제 디렉터리를 지우고 다시 돌린다.
+- 로그인은 별도 Ubuntu 터미널에서 `gh auth login --hostname github.com`, `claude auth login`, `codex login`으로 진행한다.
+- KB는 저장소 읽기 권한이 필요하다. 기존 checkout은 자동 pull하지 않는다. 등록 후 새 Codex 세션을 사용한다.
+- Orca 앱은 직접 설치·로그인한 후 대상 WSL 터미널을 열어 브리지를 준비한다.
+  스킬 설치가 먼저이며, 선택한 패치를 적용할 때만 앱 종료를 안내한다. 임의로 앱을 종료하지 않는다.
+- Orca 패치는 검증된 Windows 1.4.202 파일에만 적용한다. 미지원 파일은 수정하지 않는다.
+- Windows 또는 WSL 재시작 안내가 있으면 실행 중인 작업에 대한 영향을 알리고 사용자가 정한 시점에 진행한다.
+- 앱의 로그는 `%LOCALAPPDATA%\dev-bootstrap`, CLI 로그는 `~/.local/state/dev-bootstrap`에 있다.
+- 실패하면 이벤트와 로그를 읽고 해당 단계를 재시도한다:
+  `bash <설치 자산>/linux/setup.sh --config <구성 파일> --step <항목 ID>`
+- 재실행은 실제 상태를 검사한다. 설치 완료와 계정 연결 상태를 구분하고 미검증 항목을 완료라고 보고하지 않는다.
+- 스킬·커맨드 경로가 기존 일반 디렉터리와 충돌하면 내용을 보존하고 알린다. 자동 삭제하지 않는다.

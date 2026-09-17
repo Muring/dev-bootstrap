@@ -10,7 +10,8 @@ param(
   [string]$Distro = 'Ubuntu',
   [string]$Repo   = 'https://github.com/Muring/dev-bootstrap.git',
   [ValidatePattern('^[A-Za-z]:?$')][string]$InstallDrive,
-  [string]$InstallLocation
+  [string]$InstallLocation,
+  [string]$ConfigFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -208,16 +209,23 @@ Step "$Distro 안에서 setup.sh 실행"
 $sh = @"
 set -e
 mkdir -p ~/dev
-if [ -d ~/dev/dev-bootstrap/.git ]; then git -C ~/dev/dev-bootstrap pull --ff-only -q
-else git clone -q $Repo ~/dev/dev-bootstrap; fi
+if [ ! -d ~/dev/dev-bootstrap/.git ]; then git clone -q $Repo ~/dev/dev-bootstrap; fi
 bash ~/dev/dev-bootstrap/linux/setup.sh
 "@ -replace "`r`n","`n"
-wsl.exe -d $Distro -u $User -- bash -lc $sh
+if ($ConfigFile) {
+  $resolvedConfig = (Resolve-Path -LiteralPath $ConfigFile).Path
+  $linuxConfig = (wsl.exe -d $Distro -u $User -- wslpath -a $resolvedConfig | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0) { throw '설정 파일 경로 변환 실패' }
+  $sh = $sh.Replace('bash ~/dev/dev-bootstrap/linux/setup.sh', 'bash ~/dev/dev-bootstrap/linux/setup.sh --config "$1"')
+  wsl.exe -d $Distro -u $User -- bash -lc $sh bootstrap $linuxConfig
+} else {
+  wsl.exe -d $Distro -u $User -- bash -lc $sh
+}
 # setup.sh 는 검증에 실패하면 0 이 아닌 코드로 끝난다. 그걸 확인하지 않으면
 # 리눅스 쪽이 반쯤 실패했는데 Windows 는 "완료" 라고 말한다.
 if ($LASTEXITCODE -ne 0) {
   Warn "setup.sh 에 미완료 항목이 있다 (exit $LASTEXITCODE). 마지막 목록과 단계 안내를 확인한다."
-  Warn "로그: \\wsl.localhost\$Distro\home\$User\dev\dev-bootstrap-setup.log"
+  Warn "로그: \\wsl.localhost\$Distro\home\$User\.local\state\dev-bootstrap\events.log"
   Warn "고친 뒤 다시 돌린다: wsl -d $Distro -u $User -- bash ~/dev/dev-bootstrap/linux/setup.sh"
   exit $LASTEXITCODE
 }

@@ -1,0 +1,281 @@
+[
+  {
+    "id": "base",
+    "title": "기본 개발 도구",
+    "description": "Git, Python, curl, 빌드 도구를 준비합니다.",
+    "depends": [],
+    "defaults": {
+      "muring": true,
+      "common": true
+    },
+    "recommend": "required",
+    "required": true
+  },
+  {
+    "id": "node",
+    "title": "Node · fnm · Corepack",
+    "description": "Node 22.23.2와 프로젝트별 패키지 매니저를 준비합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": true
+    },
+    "recommend": "all",
+    "required": false
+  },
+  {
+    "id": "gh",
+    "title": "GitHub CLI",
+    "description": "GitHub 로그인과 비공개 저장소 연결에 사용합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": true
+    },
+    "recommend": "all",
+    "required": false
+  },
+  {
+    "id": "claude",
+    "title": "Claude Code",
+    "description": "Ubuntu에서 Claude Code를 사용합니다. 로그인은 별도입니다.",
+    "depends": [
+      "node"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "muring",
+    "required": false
+  },
+  {
+    "id": "codex",
+    "title": "Codex",
+    "description": "Ubuntu에서 Codex CLI를 사용합니다. 로그인은 별도입니다.",
+    "depends": [
+      "node"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "muring",
+    "required": false
+  },
+  {
+    "id": "zsh",
+    "title": "zsh · 기본 셸 변경",
+    "description": "zsh를 설치하고 로그인 셸을 변경합니다. 기존 설정은 보존합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "muring",
+    "required": false
+  },
+  {
+    "id": "shell-theme",
+    "title": "프롬프트 · zsh 플러그인",
+    "description": "Git 브랜치 표시, 자동 제안, 문법 색상을 적용합니다.",
+    "depends": [
+      "zsh"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "zsh",
+    "required": false
+  },
+  {
+    "id": "shell-replace",
+    "title": ".zshrc 전체 교체",
+    "description": "기존 파일을 백업하고 준비된 설정으로 교체합니다.",
+    "depends": [
+      "zsh"
+    ],
+    "defaults": {
+      "muring": false,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "git-name",
+    "title": "Git 작성자 이름",
+    "description": "입력한 이름을 사용자 전역 Git 설정에 적용합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": false,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "git-email",
+    "title": "Git 작성자 이메일",
+    "description": "입력한 이메일을 사용자 전역 Git 설정에 적용합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": false,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "git-branch",
+    "title": "Git 기본 브랜치",
+    "description": "새 저장소의 기본 브랜치를 main으로 설정합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": false,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "git-gcm",
+    "title": "Windows Git 인증 연동",
+    "description": "설치된 Windows Git Credential Manager를 연결합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": false,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "timezone",
+    "title": "시간대 변경",
+    "description": "Ubuntu 시간대를 지정한 값으로 변경합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "claude-settings",
+    "title": "Claude 개인 설정",
+    "description": "기존 파일은 유지하고, 없는 경우 테마·모델 설정을 생성합니다.",
+    "depends": [
+      "claude"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "claude-permissions",
+    "title": "Claude 권한 경고 생략",
+    "description": "skipDangerousModePermissionPrompt 설정을 켭니다. 별도 선택 항목입니다.",
+    "depends": [
+      "claude"
+    ],
+    "defaults": {
+      "muring": false,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "claude-skill",
+    "title": "개발환경 스킬",
+    "description": "Claude에 dev-setup 스킬을 연결합니다.",
+    "depends": [
+      "claude"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "claude-commands",
+    "title": "Claude 커맨드",
+    "description": "/commit, /blog-draft 커맨드를 연결합니다.",
+    "depends": [
+      "claude"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  },
+  {
+    "id": "kb",
+    "title": "개인 지식 저장소",
+    "description": "저장소 다운로드, Codex 지침 등록, mkb 연결을 진행합니다.",
+    "depends": [
+      "gh",
+      "codex"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "muring",
+    "required": false
+  },
+  {
+    "id": "orca",
+    "title": "Orca 스킬 연결",
+    "description": "Windows Orca 설치·로그인·WSL 터미널 실행 후 연결합니다.",
+    "depends": [
+      "base"
+    ],
+    "defaults": {
+      "muring": true,
+      "common": false
+    },
+    "recommend": "muring",
+    "required": false
+  },
+  {
+    "id": "orca-patch",
+    "title": "Orca 1.4.202 이름 생성 패치",
+    "description": "검증된 파일에만 적용합니다. Orca를 완전히 종료해야 합니다.",
+    "depends": [
+      "orca"
+    ],
+    "defaults": {
+      "muring": false,
+      "common": false
+    },
+    "recommend": "never",
+    "required": false
+  }
+]

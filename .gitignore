@@ -1,2 +1,11 @@
 *.bak
 *.bak.*
+node_modules/
+app/dist/
+app/dist-electron/
+app/release/
+__pycache__/
+*.pyc
+app/test-results/
+app/playwright-report/
+.playwright-mcp/
