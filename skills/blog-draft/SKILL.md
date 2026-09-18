@@ -95,8 +95,9 @@ ls "$MUBLOG/backup/posts"      # 기존 slug (중복 회피)
 
 - **확인한 것만 쓴다.** 모든 주장은 이 대화·커밋·diff·코드에서 근거를 봤어야 한다.
   숫자(커밋 수, 소요 일수, 응답 시간, 파일 개수)는 실제로 세거나 잰 값만. 없으면 그 문장을 뺀다.
-- **이미지를 본문에 넣지 않는다.** 새 글의 `/images/<slug>/` 는 아직 비어 있어서 깨져 보인다.
-  대신 "여기에 이 스크린샷이 있으면 좋겠다" 를 **마지막 보고에만** 목록으로 적는다.
+- **이미지는 `public/images/<slug>/` 경로로 넣지 않는다.** 새 글의 그 폴더는 비어 있고 커밋·배포 전까지
+  깨져 보인다. 스크린샷을 넣을 수 있는 환경(4-2)이면 storage 에 올린 URL 만 본문에 쓴다. 그 환경이 아니면
+  본문에 이미지를 넣지 않고 "여기에 이 스크린샷이 있으면 좋겠다" 를 **마지막 보고에만** 목록으로 적는다.
 - **태그는 기존 어휘에서 고른다**(1에서 뽑은 목록). 새 태그는 정말 필요할 때만, 최대 3개.
   `etc` 는 항상 마지막.
 - **썸네일은 실제로 있는 것만.** `$MUBLOG/public/thumbnails` 의 파일이거나, 이미 올라간 storage URL
@@ -146,6 +147,87 @@ Claude Code 에는 이미지 생성 도구가 없다. Claude 에서 실행 중�
 
 비밀값(`SUPABASE_SECRET_KEY`, `DATABASE_URL`)은 `.env.local` 에서 읽기만 하고 출력·복사하지 않는다.
 
+## 4-2. 스크린샷 — Orca 안에서만
+
+터미널·저장소 화면을 글에 넣고 싶을 때 쓴다. **`ORCA_CLI_COMMAND` 가 설정된 Orca 터미널에서만** 가능하다.
+아니면 이 절을 건너뛰고 6번 보고에 넣을 위치만 적는다. 이미지 처리 도구는 `$MUBLOG/node_modules/sharp` 를
+쓰므로 블로그 저장소의 의존성이 설치돼 있어야 한다. 아래 `ORCA` 는 `$ORCA_CLI_COMMAND` 의 값이다.
+도우미 스크립트는 이 명령 파일 옆 `scripts/` 에 있다. 아래 `$SCRIPTS` 는 그 경로다.
+
+```bash
+SCRIPTS="${CODEX_HOME:-$HOME/.codex}/skills/blog-draft/scripts"
+```
+
+**무엇을 찍을지 먼저 정한다.** 한 절에 한 장이면 충분하다. 빈 화면이 많은 캡처는 넣지 않는다.
+
+1. **장면 만들기** — 전용 터미널에서 명령을 실행하고 그 탭으로 전환한다.
+
+   ```bash
+   ORCA terminal create --worktree path:<대상 저장소> --title "shots" --json   # handle 을 받는다
+   ORCA terminal send --terminal <handle> --text "clear; <명령>" --enter --json
+   ORCA terminal switch --terminal <handle> --json
+   ```
+
+   대화형 메뉴는 `send --text 3 --enter` 로 진행하고 끝나면 `q` 로 나간다.
+
+2. **창 캡처** — Orca 창 전체가 PNG 로 떨어진다. 결과 경로는 Windows 임시 폴더이고 `expiresAt` 이 있으니
+   바로 복사한다. WSL 에서는 `C:\` → `/mnt/c/`, `\` → `/` 로 바꿔 읽는다(zsh `sed` 의 역슬래시 치환은
+   잘 깨지므로 Python 으로 바꾼다).
+
+   ```bash
+   ORCA computer list-apps --json                       # name=Orca 인 pid
+   ORCA computer get-app-state --app pid:<pid> --window-index 0 --json   # result.screenshot.path
+   ```
+
+3. **잘라내기** — 첫 장을 눈으로 보고 터미널 패널의 픽셀 범위를 정한 뒤 같은 값을 재사용한다.
+   **왼쪽 사이드바(다른 프로젝트 이름이 보인다)와 상태바는 반드시 뺀다.** 패널 오른쪽 위 아이콘도 범위에서
+   빼야 여백 제거가 된다. 1936×1040 창에서는 대략 `290 37 1250 968` 이었다. 스크립트가 내용이 있는 부분만
+   남기고 여백을 붙인 뒤 폭 1600 이하로 줄인다.
+
+   ```bash
+   node "$SCRIPTS/crop.js" <원본.png> <결과.png> <left> <top> <width> <height>
+   ```
+
+   결과를 열어 잘린 글자·개인 정보·빈 공간을 눈으로 확인한다.
+
+4. **웹 화면** — Orca 내장 브라우저로 찍는다. `screenshot` 은 base64 PNG 를 `result.data` 에 준다.
+   기본 프로필은 로그인이 없어서 private GitHub 는 404 다. 그때는 마크다운을 `$MUBLOG/src/lib/markdown/render.ts` 의
+   `renderMarkdown` 으로 HTML 로 만들어 `python3 -m http.server` 로 띄우고 `ORCA goto --url http://localhost:<port>/...` 로 연다.
+
+   ```bash
+   ORCA tab create --url <url> --worktree path:<대상 저장소> --json     # browserPageId
+   ORCA screenshot --page <id> --format png --json
+   ORCA tab close --page <id> --json
+   ```
+
+5. **업로드** — `/api/admin/upload` 와 같은 규칙으로 `post-images` 버킷 `posts/<slug>/image-N-<8hex>.png` 에 올린다.
+   `upsert: false`, 올린 뒤 공개 URL 을 받아 바이트가 같은지 확인한다. 4MB 를 넘으면 거부한다.
+
+   ```bash
+   node "$SCRIPTS/upload-images.mjs" <slug> shots/*.png --dry-run   # 경로만 확인
+   node "$SCRIPTS/upload-images.mjs" <slug> shots/*.png             # "<파일명> <URL>" 출력
+   ```
+
+6. **본문 삽입** — 기준 글과 같은 형식으로 넣고 바로 아래 같은 캡션을 한 줄 더 쓴다.
+
+   ```md
+   ![*"캡션"*](https://.../post-images/posts/<slug>/image-1-xxxxxxxx.png)
+
+   *"캡션"*
+   ```
+
+7. **정리** — 전용 터미널과 브라우저 탭을 닫고 원래 탭으로 돌아간다. 로컬 서버를 띄웠으면 끈다
+   (`pkill -f` 패턴이 자기 셸 명령줄과 겹치지 않게 `serve[r]` 처럼 쓴다).
+
+   ```bash
+   ORCA terminal close --terminal <handle> --json
+   ORCA terminal switch --terminal "$ORCA_TERMINAL_HANDLE" --json
+   ```
+
+비밀값(`SUPABASE_SECRET_KEY`)은 `.env` 에서 읽기만 하고 출력·복사하지 않는다. 등록 후 관리자 미리보기는
+내장 브라우저에 로그인이 없으면 열리지 않으므로, 공개 URL 200 과 `renderMarkdown` 의 `<img>` 개수로 대신 확인하고
+그렇게 보고한다.
+
 ## 5. 등록
 
 ```bash
@@ -159,6 +241,7 @@ cd "$MUBLOG" && yarn draft:post "<스크래치패드>/<slug>.mdx" --dry-run
 
 1. 등록 출력에 나온 **편집 URL** 을 그대로 준다.
 2. 글의 절 목록(`##` 제목들)을 한 줄씩.
-3. **넣으면 좋을 스크린샷** 위치와 내용을 목록으로.
+3. **스크린샷** — 4-2 로 넣은 것은 캡션·위치 목록으로, 못 넣은 것은 "넣으면 좋을 위치와 내용" 목록으로.
+   캡처하지 못한 이유(Orca 밖, 로그인 필요 페이지 등)가 있으면 적는다.
 4. **확인이 필요한 부분** — 근거가 약해서 뺐거나 추측이 섞였을 수 있는 지점.
 5. 마지막 한 줄: `mublog 에서 yarn backup:posts 를 돌려 커밋하면 백업에도 남습니다.`
