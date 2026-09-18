@@ -209,7 +209,7 @@ async function main() {
     config = validate(state.config,catalog); phase = state.phase; currentEvents = state.currentEvents || '';
     if (currentEvents && !path.resolve(currentEvents).startsWith(path.resolve(stateDir)+path.sep)) currentEvents='';
   } catch { /* First launch or invalid old state: use safe defaults. */ }
-  window = new BrowserWindow({width:1160,height:850,minWidth:900,minHeight:650,backgroundColor:'#f5f7fa',webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  window = new BrowserWindow({width:1460,height:850,minWidth:900,minHeight:650,backgroundColor:'#f5f7fa',webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   window.webContents.on('will-navigate',event=>event.preventDefault());
   app.on('second-instance',()=>{window.show(); window.focus();});

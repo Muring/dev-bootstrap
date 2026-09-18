@@ -31,6 +31,8 @@ test('review, progress, authentication, and incomplete summary are separate',asy
   await expect(page.getByText('.zshrc 기존 내용 보존, 관리 블록 연결')).toBeVisible();
   await page.getByRole('button',{name:'선택한 항목 설치 시작'}).click();
   await expect(page.getByText('GitHub 로그인 필요',{exact:true})).toBeVisible();
+  await expect(page.getByRole('complementary',{name:'진행 상황 패널'}).getByText('설치 진행 기록')).toBeVisible();
+  await expect(page.getByRole('button',{name:'진행 기록 보기'})).toHaveCount(0);
   await page.getByRole('button',{name:'로그인 · 연동 →'}).click();
   await page.getByRole('button',{name:'로그인',exact:true}).first().click();
   await expect(page.getByText('연결 확인됨',{exact:true})).toBeVisible();
@@ -104,7 +106,7 @@ test('long tasks show live stages, real counts, elapsed time and failure history
  const panel=page.getByRole('region',{name:'작업 진행 상황'});
  await expect(panel.getByText('Codex 로그인 상태 확인',{exact:true})).toBeVisible();
  await expect(panel.getByText('2 / 13 항목 처리',{exact:false})).toBeVisible();
- await panel.getByText('진행 과정 2개').click();
+ await expect(panel.getByText('진행 과정 2개')).toBeVisible();
  await expect(panel.getByRole('listitem').filter({hasText:'Windows 검사'})).toBeVisible();
  await page.screenshot({path:'test-results/progress.png'});
  await page.evaluate(()=>(window as any).failInspection());
@@ -126,4 +128,34 @@ test('dropdown lists are styled, keyboard accessible and close on Escape/outside
  const location=page.getByRole('combobox',{name:'저장 위치 선택'});
  await expect(location).toBeVisible();await location.click();await location.press('End');await location.press('Enter');
  await expect(page.getByLabel('Ubuntu 가상 디스크 위치',{exact:true})).toHaveValue('C:\\WSL\\Ubuntu');
+});
+test('operation state stays with its stage and comes back on return',async({page})=>{
+ await page.evaluate(()=>{const w=window as any;w.bootstrap.inspect=async()=>{const state=w.testState;state.operation={title:'환경 확인',status:'completed',startedAt:Date.now()-2000,endedAt:Date.now(),current:{label:'Ubuntu 검사 완료'},steps:[{label:'Windows 검사',time:Date.now(),status:'completed'},{label:'Ubuntu 검사 완료',time:Date.now(),status:'completed'}]};return structuredClone(state);};});
+ const rail=page.getByRole('complementary',{name:'진행 상황 패널'});
+ await expect(rail.getByText('이 단계에서 실행한 작업이 없습니다.')).toBeVisible();
+ await page.getByRole('button',{name:'환경 확인 / 새로고침'}).click();
+ await expect(rail.getByText('Ubuntu 검사 완료',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'설치 구성 선택 →'}).click();
+ await page.waitForTimeout(1100);
+ await expect(rail.getByText('이 단계에서 실행한 작업이 없습니다.')).toBeVisible();
+ await expect(rail.getByText('Ubuntu 검사 완료',{exact:true})).toHaveCount(0);
+ await page.locator('nav').getByRole('button',{name:'환경 확인'}).click();
+ await expect(rail.getByText('Ubuntu 검사 완료',{exact:true})).toBeVisible();
+ await expect(rail.getByText('작업 종료',{exact:false})).toBeVisible();
+});
+test('rail collapses to a strip and reopens when a new task starts',async({page})=>{
+ const rail=page.getByRole('complementary',{name:'진행 상황 패널'});
+ const body=page.locator('.page-content');
+ const openWidth=(await rail.boundingBox())!.width;const bodyWidth=(await body.boundingBox())!.width;
+ expect(openWidth).toBeGreaterThanOrEqual(280);
+ await page.getByRole('button',{name:'진행 상황 패널 접기'}).click();
+ await expect(rail).toHaveClass(/closed/);
+ await expect.poll(async()=>(await rail.boundingBox())!.width).toBeLessThanOrEqual(44);
+ await expect.poll(async()=>(await body.boundingBox())!.width).toBeGreaterThan(bodyWidth+200);
+ await page.getByRole('button',{name:'진행 상황 패널 펼치기'}).click();
+ await expect(rail).toHaveClass(/open/);
+ await page.getByRole('button',{name:'진행 상황 패널 접기'}).click();
+ await page.getByRole('button',{name:'환경 확인 / 새로고침'}).click();
+ await expect(rail).toHaveClass(/open/);
+ await page.screenshot({path:'test-results/rail.png'});
 });
