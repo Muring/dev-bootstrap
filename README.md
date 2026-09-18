@@ -360,7 +360,10 @@ npm test
 npm run build
 npx playwright install --with-deps chromium
 npm run test:ui
+npm run format:check
 ```
+
+앱 소스는 Prettier 형식을 유지합니다. 수정 후 `npm run format`으로 정리합니다.
 
 Windows PowerShell에서:
 
