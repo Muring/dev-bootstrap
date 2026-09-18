@@ -352,7 +352,12 @@ function App() {
                         <strong>{inspection.supported ? '지원 환경' : '지원 환경 확인 필요'}</strong>
                       </div>
                       <div>
-                        WSL<strong>{inspection.wslReady ? '준비됨' : '준비 필요'}</strong>
+                        WSL
+                        <strong>
+                          {inspection.wslReady
+                            ? `준비됨${inspection.wslVersion ? ` · ${inspection.wslVersion}` : ''}`
+                            : '준비 필요'}
+                        </strong>
                         <div className="fact-action">
                           <button
                             disabled={busy || !inspection.supported || inspection.wslReady}

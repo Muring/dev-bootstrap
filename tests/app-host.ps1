@@ -5,7 +5,7 @@ foreach ($file in @('windows\app-host.ps1', 'windows\check-orca.ps1', 'windows\b
   $ast=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root $file),[ref]$tokens,[ref]$errors)
   if ($errors.Count) { throw ($errors | Out-String) }
   if ($file -eq 'windows\app-host.ps1') {
-    foreach ($name in 'Quote-Argument','Decode-WslText','Invoke-Wsl','Get-WslLines') {
+    foreach ($name in 'Quote-Argument','Decode-WslText','Invoke-Wsl','Get-WslLines','Test-WslComplete') {
       $function=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $name},$true)
       . ([scriptblock]::Create($function.Extent.Text))
     }
@@ -23,6 +23,9 @@ if ((Decode-WslText ([byte[]]@())) -ne '') { throw 'Empty output decoding failed
 $missing=Invoke-Wsl @('-d','no-such-distro-for-test','--','true')
 if ($missing.ExitCode -eq 0 -or ($missing.Output+$missing.Error) -match "`0" -or ($missing.Output+$missing.Error).Trim().Length -eq 0) { throw 'wsl.exe error capture failed' }
 Write-Host 'PASS: wsl.exe UTF-16LE and Linux UTF-8 output decode without NUL residue'
+$complete=Test-WslComplete
+if (-not $complete.Complete -or $complete.Version -notmatch '^\d+\.\d+\.\d+') { throw ('WSL completeness check failed on a machine with WSL: ' + ($complete | ConvertTo-Json -Compress)) }
+Write-Host ('PASS: installed Store WSL reports complete, version ' + $complete.Version)
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('bootstrap-host-test-'+[guid]::NewGuid())
 New-Item -ItemType Directory -Path $temp | Out-Null
 try {
@@ -52,6 +55,32 @@ try {
     for ($i=0;$i -lt $arguments.Count;$i++) { if ($received[$i] -cne $arguments[$i]) { throw "Argument $i differs: $($received[$i])" } }
     Write-Host 'PASS: visible WSL launch preserves spaces, quotes, empty args, Korean and literal shell syntax'
   }
+
+  # Home-PC scenario: the inbox wsl.exe stub (WSL not installed) prints a UTF-16LE message on stderr and fails.
+  # CreateProcess resolves an unqualified name from the process working directory before System32, so a stub
+  # placed there stands in for the real wsl.exe for app-host.ps1 and its children.
+  $stubDir=Join-Path $temp 'stub'; New-Item -ItemType Directory -Path $stubDir | Out-Null
+  $stubSource='using System; using System.Text; class Program { static int Main(string[] a) { var m = "Linux\uC6A9 Windows \uD558\uC704 \uC2DC\uC2A4\uD15C\uC774 \uC124\uCE58\uB418\uC5B4 \uC788\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. ''wsl.exe --install''\uC744 \uC0AC\uC6A9\uD558\uC5EC \uC124\uCE58\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\r\n"; var b = new UnicodeEncoding(false, false).GetBytes(m); var e = Console.OpenStandardError(); e.Write(b, 0, b.Length); e.Flush(); return 1; } }'
+  Add-Type -TypeDefinition $stubSource -OutputType ConsoleApplication -OutputAssembly (Join-Path $stubDir 'wsl.exe') -Language CSharp
+  # PowerShell starts native children in $PWD, while .NET Process.Start uses the process directory: set both.
+  $savedDirectory=[Environment]::CurrentDirectory
+  try {
+    Push-Location $stubDir; [Environment]::CurrentDirectory=$stubDir
+    $stub=Invoke-Wsl @('--status')
+    if ($stub.ExitCode -eq 0 -or $stub.Error -notmatch 'wsl.exe --install' -or $stub.Error -match "`0") { throw 'Stub wsl.exe was not used or its message did not decode' }
+    [IO.File]::WriteAllText($request,'{"action":"inspect"}',(New-Object Text.UTF8Encoding $false))
+    Remove-Item -LiteralPath $result -ErrorAction SilentlyContinue
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'windows\app-host.ps1') -RequestFile $request -ResultFile $result
+    if ($LASTEXITCODE -ne 0) { throw 'Inspection with the WSL stub failed instead of reporting WSL as not ready' }
+    $stubData=Get-Content -LiteralPath $result -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($stubData.wslReady -ne $false -or $stubData.locationSupported -ne $false -or $stubData.PSObject.Properties['error']) { throw ('Stub inspection result unexpected: ' + (ConvertTo-Json $stubData -Compress)) }
+    [IO.File]::WriteAllText($request,'{"action":"install","config":{"distro":"Ubuntu","user":"tester","installLocation":""}}',(New-Object Text.UTF8Encoding $false))
+    Remove-Item -LiteralPath $result -ErrorAction SilentlyContinue
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'windows\app-host.ps1') -RequestFile $request -ResultFile $result
+    $installData=Get-Content -LiteralPath $result -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($LASTEXITCODE -eq 0 -or $installData.error -notmatch 'Complete WSL preparation first') { throw ('Install did not refuse on incomplete WSL: ' + (ConvertTo-Json $installData -Compress)) }
+  } finally { Pop-Location; [Environment]::CurrentDirectory=$savedDirectory }
+  Write-Host 'PASS: WSL-not-installed stub yields a clean not-ready inspection and blocks Ubuntu install'
 
   [IO.File]::WriteAllText($request,'{"action":"not-an-action"}',(New-Object Text.UTF8Encoding $false))
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'windows\app-host.ps1') -RequestFile $request -ResultFile $result

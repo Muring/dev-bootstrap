@@ -546,6 +546,10 @@ async function main() {
       if (result.reboot) {
         report({ label: 'Windows 재부팅 후 다시 실행하세요.' });
         operation.finish('waiting');
+      } else if (!inspection?.wslReady) {
+        // Prepared without a reboot request, yet --status/--version still fail: do not open the next stage.
+        report({ label: 'WSL 준비를 확인하지 못했습니다. 재부팅 후 WSL 준비를 다시 실행하세요.' });
+        operation.finish('waiting');
       }
       return { reboot: result.reboot };
     }),

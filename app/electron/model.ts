@@ -56,6 +56,7 @@ export interface Inspection {
   supported: boolean;
   windowsBuild?: number;
   wslReady: boolean;
+  wslVersion?: string;
   locationSupported: boolean;
   distros: { name: string; location: string; version: number }[];
   drives: { root: string; freeGB: number }[];

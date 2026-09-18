@@ -51,6 +51,16 @@ function Invoke-Wsl([string[]]$Arguments) {
   return @{ ExitCode=$process.ExitCode; Output=(Decode-WslText $stdout.ToArray()); Error=(Decode-WslText $stderr.ToArray()) }
 }
 function Get-WslLines([string]$Text) { return @($Text -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
+# "Complete" WSL means the optional features are enabled ( --status ) AND the Store WSL package is present
+# ( --version reports numbers; the inbox wsl.exe does not know the option). Only then do later wsl.exe calls
+# (--install -d Ubuntu, --set-default-version, running distros) stop asking for elevation on their own.
+function Test-WslComplete {
+  $status = (Invoke-Wsl @('--status')).ExitCode -eq 0
+  $version = Invoke-Wsl @('--version')
+  $store = $version.ExitCode -eq 0 -and $version.Output -match '\d+\.\d+\.\d+'
+  $number = if ($store -and $version.Output -match '(\d+\.\d+\.\d+(\.\d+)?)') { $Matches[1] } else { '' }
+  return @{ Status=$status; Store=$store; Version=$number; Complete=($status -and $store) }
+}
 try {
   $request = Get-Content -LiteralPath $RequestFile -Raw -Encoding UTF8 | ConvertFrom-Json
   switch ($request.action) {
@@ -59,7 +69,7 @@ try {
       $build = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuildNumber
       Report-Progress 'WSL 준비 상태와 지원 기능 확인' 1 4
       $help = Invoke-Wsl @('--help'); $help = $help.Output + $help.Error
-      $ready = (Invoke-Wsl @('--status')).ExitCode -eq 0
+      $wsl = Test-WslComplete
       Report-Progress 'Ubuntu 배포판과 저장 공간 확인' 2 4
       $distros = @()
       $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss'
@@ -79,7 +89,7 @@ try {
         $supported = $patched -or $hash -eq $manifest.originalSha256
       }
       Report-Progress 'Windows 검사 완료' 4 4
-      Write-Result @{ supported=($build -ge 22000 -and [Environment]::Is64BitOperatingSystem -and $env:PROCESSOR_ARCHITECTURE -ne 'ARM64' -and $env:PROCESSOR_ARCHITEW6432 -ne 'ARM64'); windowsBuild=$build; wslReady=$ready; locationSupported=($help -match '--location\b'); distros=$distros; drives=$drives; orcaInstalled=(Test-Path -LiteralPath $archive); patchSupported=$supported; patchApplied=$patched }
+      Write-Result @{ supported=($build -ge 22000 -and [Environment]::Is64BitOperatingSystem -and $env:PROCESSOR_ARCHITECTURE -ne 'ARM64' -and $env:PROCESSOR_ARCHITEW6432 -ne 'ARM64'); windowsBuild=$build; wslReady=$wsl.Complete; wslVersion=$wsl.Version; locationSupported=($help -match '--location\b'); distros=$distros; drives=$drives; orcaInstalled=(Test-Path -LiteralPath $archive); patchSupported=$supported; patchApplied=$patched }
     }
     'prepare' {
       Report-Progress 'Windows 관리자 권한 승인 대기'
@@ -98,12 +108,18 @@ try {
       Report-Progress 'WSL 구성 요소 다운로드 및 업데이트'
       & wsl.exe --update
       if ($LASTEXITCODE -ne 0) { throw 'WSL update failed. Review the terminal output and retry.' }
-      Write-Result @{ reboot=((Invoke-Wsl @('--status')).ExitCode -ne 0); prepared=$true }
+      Report-Progress 'WSL 패키지와 기능 상태 확인'
+      $wsl = Test-WslComplete
+      if (-not $wsl.Status) { Write-Result @{ reboot=$true; prepared=$true }; break }
+      if (-not $wsl.Store) { throw 'Store WSL package was not found after install/update. Reboot, then run WSL preparation again.' }
+      Write-Result @{ reboot=$false; prepared=$true; wslVersion=$wsl.Version }
     }
     'install' {
       Report-Progress 'Ubuntu 설치 대상과 사용자 확인'
       $config = $request.config
       if ($config.distro -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$' -or $config.user -notmatch '^[a-z_][a-z0-9_-]{0,31}$' -or $config.user -eq 'root') { throw 'Invalid distro/user' }
+      # Refuse before wsl.exe would elevate itself to finish its own installation.
+      if (-not (Test-WslComplete).Complete) { throw 'Complete WSL preparation first: the Store WSL package or its features are not ready.' }
       $installed = Get-WslLines (Invoke-Wsl @('-l','-q')).Output
       if ($installed -contains $config.distro) {
         Native @('-d',$config.distro,'-u',$config.user,'--exec','id','-u')
