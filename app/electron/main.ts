@@ -439,12 +439,26 @@ async function run(step?: string) {
   return snapshot();
 }
 
+// The downloaded portable EXE carries Mark-of-the-Web, so SmartScreen and the "open file" warning ask on
+// every launch. Once the user has chosen to run it, drop the mark so later launches (e.g. after the WSL
+// reboot) start without the prompt. The stream can be removed while the launcher is still running.
+async function unblockPortableExecutable() {
+  const file = process.env.PORTABLE_EXECUTABLE_FILE;
+  if (process.platform !== 'win32' || !file) return;
+  try {
+    await fs.unlink(file + ':Zone.Identifier');
+  } catch {
+    /* No mark, or not removable: SmartScreen will simply ask again. */
+  }
+}
+
 async function main() {
   if (!app.requestSingleInstanceLock()) {
     app.quit();
     return;
   }
   await app.whenReady();
+  await unblockPortableExecutable();
   stateDir =
     process.platform === 'win32'
       ? path.join(process.env.LOCALAPPDATA!, 'dev-bootstrap')

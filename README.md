@@ -7,9 +7,9 @@ Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마�
 ## 앱으로 시작하기
 
 1. [DevBootstrap-0.1.7-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.7-x64.exe/DevBootstrap-0.1.7-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
-2. 다운로드한 `DevBootstrap-0.1.7-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다.
+2. 다운로드한 `DevBootstrap-0.1.7-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다. 서명되지 않은 파일이라 처음 한 번은 SmartScreen 창이 뜹니다. **추가 정보 → 실행**을 누르세요. 앱이 시작되면 다운로드 표시를 스스로 지워 다음 실행부터는 묻지 않습니다. 그래도 계속 뜨면 파일 속성에서 **차단 해제**를 체크하세요.
 3. **환경 확인**을 누릅니다. WSL, 기존 Ubuntu, 드라이브 여유 공간과 Orca 상태를 검사합니다.
-4. WSL이 없으면 **WSL 준비**를 누릅니다. 이 단계에서만 Windows 관리자 권한을 요청합니다.
+4. WSL이 없으면 **WSL 준비**를 누릅니다. 이 단계에서만 Windows 관리자 권한(UAC) 창이 한 번 뜹니다. 다른 버튼은 관리자 권한을 쓰지 않으며, Orca 설치 창만 Orca 설치 파일 자체의 권한 요청이 있습니다.
 5. 재부팅이 필요하면 작업을 저장하고 재부팅한 다음 같은 앱을 다시 엽니다.
 6. Ubuntu 저장 위치와 Linux 사용자명을 선택하고 **Ubuntu 설치**를 누릅니다. 기존 Ubuntu라면 현재 위치와 개발 계정을 사용합니다.
 7. **설치 구성**에서 원하는 항목을 선택합니다. `Recommended`는 권장 표시이며 선택을 해제할 수 있습니다.
