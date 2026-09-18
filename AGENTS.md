@@ -9,3 +9,8 @@
 - 새 명령도 Claude의 `/<name>`과 Codex의 `$<name>` 호출을 안내하고, 두 경로가 같은 실제 파일인지와 스킬 형식을 검증한다.
 - 링크 밖의 원본을 수정하면 실행 중인 Codex의 파일 감시가 갱신을 놓칠 수 있다. 등록 링크에 `os.utime(link, follow_symlinks=False)`와 스킬 검색 루트에 `os.utime(root)`를 적용해 갱신을 알린다. 새 프로세스의 `skills/list` 결과만으로 현재 터미널 표시까지 확인했다고 보고하지 않는다.
 - 명령 통합 작업 중에는 그 명령의 본래 동작(커밋·초안 등록 등)을 실행하지 않는다.
+
+# 커밋 전 검사
+
+- `app/` 아래 소스를 수정했으면 `cd app && npm run format:check`를 통과시킨다. 실패하면 `npm run format`으로 정리한 뒤 다시 확인한다. 형식은 `app/.prettierrc.json`을 따르며 한 줄에 여러 문장을 붙이지 않는다.
+- `app/`의 동작을 바꿨으면 `npm test`와 `npm run build`도 통과시킨다. 화면을 바꿨으면 `npm run test:ui`를 함께 돌린다.
