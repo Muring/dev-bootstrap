@@ -124,6 +124,10 @@ test('dropdown lists are styled, keyboard accessible and close on Escape/outside
  await distro.click();await distro.press('Escape');await expect(page.getByRole('listbox')).toHaveCount(0);
  await distro.click();await page.getByRole('heading',{name:'환경 확인',exact:true}).click();await expect(page.getByRole('listbox')).toHaveCount(0);
  await expect(page.locator('select')).toHaveCount(0);
+ // A scroll event that does not move the trigger (queued by scroll-into-view before opening) must not close the menu; a real scroll must.
+ await distro.click();await expect(page.getByRole('listbox')).toBeVisible();
+ await page.locator('.page-content').dispatchEvent('scroll');await expect(page.getByRole('listbox')).toBeVisible();
+ await page.locator('.page-content').evaluate(el=>{el.scrollTop=el.scrollHeight;});await expect(page.getByRole('listbox')).toHaveCount(0);
  await page.evaluate(()=>{(window as any).testState.inspection.distros=[];});
  const location=page.getByRole('combobox',{name:'저장 위치 선택'});
  await expect(location).toBeVisible();await location.click();await location.press('End');await location.press('Enter');
