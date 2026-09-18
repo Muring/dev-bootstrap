@@ -3,8 +3,11 @@
 사용자는 Releases에서 EXE만 다운로드합니다. Git clone과 아래 절차는 개발자에게만 필요합니다.
 검증이 끝나지 않은 버전은 Pre-release로 게시하고, 신규 Windows 전체 설치 검증을 마친 뒤 안정판 여부를 결정합니다.
 
-릴리스 표시 이름과 Git 태그는 모두 배포 EXE 파일명과 동일하게 지정합니다(예: `DevBootstrap-0.1.9-x64.exe`).
+릴리스 표시 이름과 Git 태그는 모두 배포 EXE 파일명과 동일하게 지정합니다(예: `MuRingDevSetup-0.1.9-x64.exe`).
 검증판 여부는 GitHub의 Pre-release 표시로 구분합니다.
+
+저장소 개명 시에는 먼저 [개명 전환 절차](RENAMING.md)를 확인합니다.
+기존 릴리스의 `DevBootstrap-*` 파일명과 태그는 유지하고, 새 버전부터 `MuRingDevSetup-*`을 사용합니다.
 
 ## 콘텐츠만 변경한 경우
 
@@ -37,6 +40,7 @@ python3 tests/shell-config.py
 python3 tests/setup-kb.py /path/to/muring-kb
 cd app
 npm ci
+npm run format:check
 npm test
 npm run build
 # UI 테스트 환경을 처음 준비할 때: npx playwright install --with-deps chromium
@@ -60,10 +64,10 @@ git diff --check
 git status --short
 # 검토한 소스·문서만 명시적으로 추가합니다. EXE와 로컬 로그는 추가하지 않습니다.
 git add <검토한 파일들>
-git commit -m "release: prepare dev bootstrap v0.1.9"
+git commit -m "release: prepare muring dev setup v0.1.9"
 git push origin main
-git tag -a DevBootstrap-0.1.9-x64.exe -m "DevBootstrap-0.1.9-x64.exe"
-git push origin DevBootstrap-0.1.9-x64.exe
+git tag -a MuRingDevSetup-0.1.9-x64.exe -m "MuRingDevSetup-0.1.9-x64.exe"
+git push origin MuRingDevSetup-0.1.9-x64.exe
 ```
 
 ## 4. 초안 업로드, 확인, 공개
@@ -71,11 +75,11 @@ git push origin DevBootstrap-0.1.9-x64.exe
 다음 예시는 Bash/WSL에서 실행합니다.
 
 ```bash
-(cd app/release && sha256sum DevBootstrap-0.1.9-x64.exe > SHA256SUMS.txt)
-gh release create DevBootstrap-0.1.9-x64.exe \
-  app/release/DevBootstrap-0.1.9-x64.exe app/release/SHA256SUMS.txt \
+(cd app/release && sha256sum MuRingDevSetup-0.1.9-x64.exe > SHA256SUMS.txt)
+gh release create MuRingDevSetup-0.1.9-x64.exe \
+  app/release/MuRingDevSetup-0.1.9-x64.exe app/release/SHA256SUMS.txt \
   --verify-tag --draft --prerelease \
-  --title "DevBootstrap-0.1.9-x64.exe" \
+  --title "MuRingDevSetup-0.1.9-x64.exe" \
   --notes-file docs/releases/v0.1.9.md
 ```
 
@@ -83,8 +87,8 @@ gh release create DevBootstrap-0.1.9-x64.exe \
 EXE asset의 `digest`와 로컬 SHA-256을 대조합니다. 그 뒤 공개합니다.
 
 ```bash
-gh release view DevBootstrap-0.1.9-x64.exe --json url,assets,isDraft,isPrerelease
-gh release edit DevBootstrap-0.1.9-x64.exe --draft=false
+gh release view MuRingDevSetup-0.1.9-x64.exe --json url,assets,isDraft,isPrerelease
+gh release edit MuRingDevSetup-0.1.9-x64.exe --draft=false
 ```
 
 공개 후 로그인 없는 다운로드 링크가 열리는지 확인하고, 사용자에게 다음을 함께 전달합니다.

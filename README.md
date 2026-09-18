@@ -1,12 +1,16 @@
-# Dev Bootstrap
+# MuRing Dev Setup
 
 Windows PC에서 **WSL2 + Ubuntu 개발환경을 안내하며 설치하는 마법사**입니다.
 개인 PC 재설치를 위한 MuRing 구성을 기본 제공하고, 공통 개발환경 구성도 선택할 수 있습니다.
 업무 프로젝트, 프로젝트의 비밀값, DB 설정은 설치하지 않습니다.
 
+기존 **Dev Bootstrap**의 새 이름입니다. 현재 공개된 0.1.8 설치 파일은 기존 이름을 사용합니다.
+새 빌드의 파일명은 `MuRingDevSetup-<버전>-x64.exe`이며, 설치 경로와 기존 설정은 그대로 사용합니다.
+GitHub 저장소는 `Muring/muring-dev-setup`으로 개명했습니다. [개명 전환 기록](docs/RENAMING.md)에서 호환성 유지 범위를 확인할 수 있습니다.
+
 ## 앱으로 시작하기
 
-1. [DevBootstrap-0.1.8-x64.exe 다운로드](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.8-x64.exe/DevBootstrap-0.1.8-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
+1. [DevBootstrap-0.1.8-x64.exe 다운로드](https://github.com/Muring/muring-dev-setup/releases/download/DevBootstrap-0.1.8-x64.exe/DevBootstrap-0.1.8-x64.exe)를 눌러 EXE를 받습니다. **Git clone은 필요 없습니다.**
 2. 다운로드한 `DevBootstrap-0.1.8-x64.exe`를 **Windows 로컬 폴더에서 실행**합니다. 서명되지 않은 파일이라 처음 한 번은 SmartScreen 창이 뜹니다. **추가 정보 → 실행**을 누르세요. 앱이 시작되면 다운로드 표시를 스스로 지워 다음 실행부터는 묻지 않습니다. 그래도 계속 뜨면 파일 속성에서 **차단 해제**를 체크하세요.
 3. **환경 확인**을 누릅니다. WSL, 기존 Ubuntu, 드라이브 여유 공간과 Orca 상태를 검사합니다.
 4. WSL이 없으면 **WSL 준비**를 누릅니다. 이 단계에서만 Windows 관리자 권한(UAC) 창이 한 번 뜹니다. WSL 기능과 Store판 WSL 패키지(`wsl --version`으로 확인)가 모두 준비돼야 **준비됨**으로 표시되고 다음 단계가 열립니다. 이후 단계의 wsl.exe 호출이 스스로 관리자 권한을 요청하지 않게 하기 위해서입니다. 다른 버튼은 관리자 권한을 쓰지 않으며, Orca 설치 창만 Orca 설치 파일 자체의 권한 요청이 있습니다.
@@ -31,8 +35,8 @@ WSL 최신 버전 비교 기능은 없으며, 필요할 때 Windows PowerShell�
 
 **사용자 PC에 Git, Node, Python을 미리 설치하거나 이 저장소를 clone할 필요가 없습니다.**
 실행 파일에는 앱 런타임과 설치 스크립트가 들어 있습니다. 커맨드·스킬은 설치 시 GitHub에서 별도로 받습니다. 다운로드에는 인터넷이 필요합니다.
-[릴리스 페이지](https://github.com/Muring/dev-bootstrap/releases/tag/DevBootstrap-0.1.8-x64.exe)에서 변경 내용과
-[SHA-256 파일](https://github.com/Muring/dev-bootstrap/releases/download/DevBootstrap-0.1.8-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
+[릴리스 페이지](https://github.com/Muring/muring-dev-setup/releases/tag/DevBootstrap-0.1.8-x64.exe)에서 변경 내용과
+[SHA-256 파일](https://github.com/Muring/muring-dev-setup/releases/download/DevBootstrap-0.1.8-x64.exe/SHA256SUMS.txt)도 확인할 수 있습니다.
 현재 버전은 서명되지 않은 **초기 검증판(Pre-release)**입니다. 신규 Windows 전체 설치 검증은 아직 남아 있습니다.
 GitHub의 `Source code (zip/tar.gz)`는 개발용 소스이며, 설치할 때는 `.exe` 파일을 받으세요.
 
@@ -64,7 +68,7 @@ Windows 저장 위치는 Ubuntu 가상 디스크의 위치이며, Ubuntu 내부 
 - 설치 도중 재부팅하면 같은 EXE를 다시 실행하고 환경 확인 후 계속합니다.
 - 설치가 끝나면 새 Ubuntu 터미널에서 선택한 도구의 버전을 확인합니다. KB 등록 후에는 새 Codex 세션을 시작합니다.
 - 실패하면 **로그 폴더 열기**에서 해당 실행의 `events.jsonl`과 `events.log`를 확인하고 미완료 단계를 재시도합니다.
-- 다음 버전은 [전체 릴리스 목록](https://github.com/Muring/dev-bootstrap/releases)에서 새 EXE를 받아 실행합니다.
+- 다음 버전은 [전체 릴리스 목록](https://github.com/Muring/muring-dev-setup/releases)에서 새 EXE를 받아 실행합니다.
   자동 업데이트는 없습니다. 같은 Windows 계정의 선택 기록을 읽고 실제 상태를 다시 검사합니다.
 - 다음 버전 설치도 변경 내용 확인 화면을 거칩니다. 기존 Ubuntu나 개발환경을 먼저 삭제할 필요가 없습니다.
 - 개발자가 새 버전을 배포하는 절차는 [배포 가이드](docs/RELEASING.md)를 따릅니다.
@@ -252,7 +256,7 @@ powershell -ExecutionPolicy Bypass -File windows\fix-orca-wsl-rename.ps1 -Restor
 관리자 PowerShell에서 실행합니다. 저장소 clone은 필요하지 않습니다.
 
 ```powershell
-irm https://raw.githubusercontent.com/Muring/dev-bootstrap/main/windows/bootstrap.ps1 -OutFile "$env:TEMP\bootstrap.ps1"
+irm https://raw.githubusercontent.com/Muring/muring-dev-setup/main/windows/bootstrap.ps1 -OutFile "$env:TEMP\bootstrap.ps1"
 powershell -ExecutionPolicy Bypass -File "$env:TEMP\bootstrap.ps1" -User muring
 ```
 
@@ -277,7 +281,7 @@ Ubuntu 터미널에서 일반 개발 계정으로 실행합니다. 전체 스크
 
 ```bash
 mkdir -p ~/dev
-git clone https://github.com/Muring/dev-bootstrap.git ~/dev/dev-bootstrap
+git clone https://github.com/Muring/muring-dev-setup.git ~/dev/dev-bootstrap
 bash ~/dev/dev-bootstrap/linux/setup.sh
 ```
 
@@ -327,7 +331,9 @@ npm test
 npm run dist:win
 ```
 
-Windows 포터블 산출물: `app/release/DevBootstrap-0.1.8-x64.exe`
+Windows 포터블 산출물: `app/release/MuRingDevSetup-<package.json의 버전>-x64.exe`
+
+개발 소스의 버전은 아직 0.1.8입니다. 새 이름으로 배포하기 전에는 버전을 올리며, 기존 0.1.8 릴리스는 교체하지 않습니다.
 
 Windows에서 개발용 앱을 실행하려면 `npm start`를 사용합니다.
 Linux에서 실행하면 화면 개발만 가능하며 Windows 설치 기능은 차단됩니다.

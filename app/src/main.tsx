@@ -266,7 +266,7 @@ function App() {
     <div className="layout">
       <aside>
         <div className="brand">
-          <span className="brand-icon">↗</span> Dev Bootstrap
+          <span className="brand-icon">↗</span> MuRing Dev Setup
         </div>
         <p className="aside-caption">새 PC, 익숙한 개발환경.</p>
         <nav>

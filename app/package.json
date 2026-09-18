@@ -34,7 +34,7 @@
   },
   "build": {
     "appId": "dev.muring.bootstrap",
-    "productName": "Dev Bootstrap",
+    "productName": "MuRing Dev Setup",
     "directories": {
       "output": "release"
     },
@@ -58,7 +58,7 @@
       "target": "portable",
       "signAndEditExecutable": false
     },
-    "artifactName": "DevBootstrap-${version}-${arch}.${ext}",
+    "artifactName": "MuRingDevSetup-${version}-${arch}.${ext}",
     "compression": "normal"
   }
 }
